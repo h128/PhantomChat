@@ -22,7 +22,7 @@ project(
   phantomchat
   VERSION 0.0.2
   DESCRIPTION ""
-  HOMEPAGE_URL "%%myurl%%"
+  HOMEPAGE_URL "https://github.com/h128/PhantomChat"
   LANGUAGES CXX C)
 
 include(cmake/PreventInSourceBuilds.cmake)

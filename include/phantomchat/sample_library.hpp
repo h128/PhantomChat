@@ -6,5 +6,4 @@
 [[nodiscard]] SAMPLE_LIBRARY_EXPORT int factorial(int) noexcept;
 
 
-
 #endif
