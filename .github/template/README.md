@@ -1,17 +1,17 @@
-# %%myproject%%
+# %%phantomchat%%
 
-[![ci](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/ci.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/%%myorg%%/%%myproject%%/branch/main/graph/badge.svg)](https://codecov.io/gh/%%myorg%%/%%myproject%%)
-[![CodeQL](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/codeql-analysis.yml)
+[![ci](https://github.com/%%myorg%%/%%phantomchat%%/actions/workflows/ci.yml/badge.svg)](https://github.com/%%myorg%%/%%phantomchat%%/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/%%myorg%%/%%phantomchat%%/branch/main/graph/badge.svg)](https://codecov.io/gh/%%myorg%%/%%phantomchat%%)
+[![CodeQL](https://github.com/%%myorg%%/%%phantomchat%%/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/%%myorg%%/%%phantomchat%%/actions/workflows/codeql-analysis.yml)
 
-## About %%myproject%%
+## About %%phantomchat%%
 %%description%%
 
 ## WebAssembly Demo
 
 Try the live WebAssembly demo:
-- Main: [https://%%myorg%%.github.io/%%myproject%%/](https://%%myorg%%.github.io/%%myproject%%/)
-- Develop: [https://%%myorg%%.github.io/%%myproject%%/develop/](https://%%myorg%%.github.io/%%myproject%%/develop/)
+- Main: [https://%%myorg%%.github.io/%%phantomchat%%/](https://%%myorg%%.github.io/%%phantomchat%%/)
+- Develop: [https://%%myorg%%.github.io/%%phantomchat%%/develop/](https://%%myorg%%.github.io/%%phantomchat%%/develop/)
 
 The `main` branch deploys to the root, `develop` to `/develop/`, and tags to `/tagname/`.
 

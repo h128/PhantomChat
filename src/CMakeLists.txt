@@ -1,2 +1,2 @@
-add_subdirectory(sample_library)
-add_subdirectory(ftxui_sample)
+add_subdirectory(phantom_core)
+add_subdirectory(phantom_server)

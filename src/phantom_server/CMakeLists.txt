@@ -2,8 +2,8 @@ add_executable(intro main.cpp)
 
 target_link_libraries(
   intro
-  PRIVATE myproject::myproject_options
-          myproject::myproject_warnings)
+  PRIVATE phantomchat::phantomchat_options
+          phantomchat::phantomchat_warnings)
 
 target_link_system_libraries(
   intro
@@ -13,6 +13,6 @@ target_link_system_libraries(
           )
 
 
-myproject_configure_linker(intro)
+phantomchat_configure_linker(intro)
 
 target_include_directories(intro PRIVATE "${CMAKE_BINARY_DIR}/configured_files/include")

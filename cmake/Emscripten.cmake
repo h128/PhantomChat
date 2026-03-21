@@ -2,10 +2,10 @@
 # Emscripten/WebAssembly build configuration
 
 # Common paths for web assets
-set(myproject_WEB_DIR "${CMAKE_SOURCE_DIR}/web")
-set(myproject_COI_WORKER "${myproject_WEB_DIR}/coi-serviceworker.min.js")
-set(myproject_SHELL_TEMPLATE "${myproject_WEB_DIR}/shell_template.html.in")
-set(myproject_INDEX_TEMPLATE "${myproject_WEB_DIR}/index_template.html.in")
+set(phantomchat_WEB_DIR "${CMAKE_SOURCE_DIR}/web")
+set(phantomchat_COI_WORKER "${phantomchat_WEB_DIR}/coi-serviceworker.min.js")
+set(phantomchat_SHELL_TEMPLATE "${phantomchat_WEB_DIR}/shell_template.html.in")
+set(phantomchat_INDEX_TEMPLATE "${phantomchat_WEB_DIR}/index_template.html.in")
 
 # Helper function to escape HTML special characters
 function(escape_html output_var input)
@@ -22,27 +22,27 @@ if(EMSCRIPTEN)
   message(STATUS "Emscripten build detected - configuring for WebAssembly")
 
   # Set WASM build flag
-  set(myproject_WASM_BUILD ON CACHE BOOL "Building for WebAssembly" FORCE)
+  set(phantomchat_WASM_BUILD ON CACHE BOOL "Building for WebAssembly" FORCE)
 
   # Sanitizers don't work with Emscripten
   foreach(sanitizer ADDRESS LEAK UNDEFINED THREAD MEMORY)
-    set(myproject_ENABLE_SANITIZER_${sanitizer} OFF CACHE BOOL "Not supported with Emscripten")
+    set(phantomchat_ENABLE_SANITIZER_${sanitizer} OFF CACHE BOOL "Not supported with Emscripten")
   endforeach()
 
   # Disable static analysis and strict warnings for Emscripten builds
   foreach(option CLANG_TIDY CPPCHECK WARNINGS_AS_ERRORS)
-    set(myproject_ENABLE_${option} OFF CACHE BOOL "Disabled for Emscripten")
+    set(phantomchat_ENABLE_${option} OFF CACHE BOOL "Disabled for Emscripten")
   endforeach()
 
   # Disable testing - no way to execute WASM test targets
   set(BUILD_TESTING OFF CACHE BOOL "No test runner for WASM")
 
   # WASM runtime configuration - tunable performance parameters
-  set(myproject_WASM_INITIAL_MEMORY "33554432" CACHE STRING
+  set(phantomchat_WASM_INITIAL_MEMORY "33554432" CACHE STRING
       "Initial WASM memory in bytes (default: 32MB)")
-  set(myproject_WASM_PTHREAD_POOL_SIZE "4" CACHE STRING
+  set(phantomchat_WASM_PTHREAD_POOL_SIZE "4" CACHE STRING
       "Pthread pool size for WASM builds (default: 4)")
-  set(myproject_WASM_ASYNCIFY_STACK_SIZE "65536" CACHE STRING
+  set(phantomchat_WASM_ASYNCIFY_STACK_SIZE "65536" CACHE STRING
       "Asyncify stack size in bytes (default: 64KB)")
 
   # For Emscripten WASM builds, FTXUI requires pthreads and native exception handling
@@ -52,7 +52,7 @@ if(EMSCRIPTEN)
 endif()
 
 # Function to apply WASM settings to a target
-function(myproject_configure_wasm_target target)
+function(phantomchat_configure_wasm_target target)
   if(EMSCRIPTEN)
     # Parse optional named arguments
     set(options "")
@@ -76,25 +76,25 @@ function(myproject_configure_wasm_target target)
     endif()
 
     # Register this target in the global WASM targets list
-    set_property(GLOBAL APPEND PROPERTY myproject_WASM_TARGETS "${target}")
-    set_property(GLOBAL PROPERTY myproject_WASM_TARGET_${target}_TITLE "${WASM_TITLE}")
-    set_property(GLOBAL PROPERTY myproject_WASM_TARGET_${target}_DESCRIPTION "${WASM_DESCRIPTION}")
-    set_property(GLOBAL PROPERTY myproject_WASM_TARGET_${target}_OUTPUT_NAME "${OUTPUT_NAME}")
+    set_property(GLOBAL APPEND PROPERTY phantomchat_WASM_TARGETS "${target}")
+    set_property(GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_TITLE "${WASM_TITLE}")
+    set_property(GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_DESCRIPTION "${WASM_DESCRIPTION}")
+    set_property(GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_OUTPUT_NAME "${OUTPUT_NAME}")
 
-    target_compile_definitions(${target} PRIVATE myproject_WASM_BUILD=1)
+    target_compile_definitions(${target} PRIVATE phantomchat_WASM_BUILD=1)
 
     # Emscripten link flags
     target_link_options(${target} PRIVATE
       # Enable pthreads - REQUIRED by FTXUI's WASM implementation
       "-sUSE_PTHREADS=1"
       "-sPROXY_TO_PTHREAD=1"
-      "-sPTHREAD_POOL_SIZE=${myproject_WASM_PTHREAD_POOL_SIZE}"
+      "-sPTHREAD_POOL_SIZE=${phantomchat_WASM_PTHREAD_POOL_SIZE}"
       # Enable asyncify for emscripten_sleep and async operations
       "-sASYNCIFY=1"
-      "-sASYNCIFY_STACK_SIZE=${myproject_WASM_ASYNCIFY_STACK_SIZE}"
+      "-sASYNCIFY_STACK_SIZE=${phantomchat_WASM_ASYNCIFY_STACK_SIZE}"
       # Memory configuration
       "-sALLOW_MEMORY_GROWTH=1"
-      "-sINITIAL_MEMORY=${myproject_WASM_INITIAL_MEMORY}"
+      "-sINITIAL_MEMORY=${phantomchat_WASM_INITIAL_MEMORY}"
       # Environment - need both web and worker for pthread support
       "-sENVIRONMENT=web,worker"
       # Export runtime methods for JavaScript interop
@@ -124,9 +124,9 @@ function(myproject_configure_wasm_target target)
     set(CONFIGURED_SHELL "${CMAKE_BINARY_DIR}/web/${target}_shell.html")
 
     # Generate target-specific shell file (configure_file creates parent directories automatically)
-    if(EXISTS "${myproject_SHELL_TEMPLATE}")
+    if(EXISTS "${phantomchat_SHELL_TEMPLATE}")
       configure_file(
-        "${myproject_SHELL_TEMPLATE}"
+        "${phantomchat_SHELL_TEMPLATE}"
         "${CONFIGURED_SHELL}"
         @ONLY
       )
@@ -138,20 +138,20 @@ function(myproject_configure_wasm_target target)
 
       # Add both template and configured file as link dependencies
       set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS
-        "${myproject_SHELL_TEMPLATE}"
+        "${phantomchat_SHELL_TEMPLATE}"
         "${CONFIGURED_SHELL}"
       )
 
       message(STATUS "Configured WASM shell for ${target}: ${CONFIGURED_SHELL}")
     else()
-      message(FATAL_ERROR "Shell template not found: ${myproject_SHELL_TEMPLATE}")
+      message(FATAL_ERROR "Shell template not found: ${phantomchat_SHELL_TEMPLATE}")
     endif()
 
     # Copy service worker to target build directory for standalone target builds
-    if(EXISTS "${myproject_COI_WORKER}")
+    if(EXISTS "${phantomchat_COI_WORKER}")
       add_custom_command(TARGET ${target} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-          "${myproject_COI_WORKER}"
+          "${phantomchat_COI_WORKER}"
           "$<TARGET_FILE_DIR:${target}>/coi-serviceworker.min.js"
         COMMENT "Copying coi-serviceworker.min.js to ${target} build directory"
       )
@@ -165,7 +165,7 @@ function(myproject_configure_wasm_target target)
 endfunction()
 
 # Create a unified web deployment directory with all WASM targets
-function(myproject_create_web_dist)
+function(phantomchat_create_web_dist)
   if(NOT EMSCRIPTEN)
     return()
   endif()
@@ -174,7 +174,7 @@ function(myproject_create_web_dist)
   set(WEB_DIST_DIR "${CMAKE_BINARY_DIR}/web-dist")
 
   # Get list of all WASM targets
-  get_property(WASM_TARGETS GLOBAL PROPERTY myproject_WASM_TARGETS)
+  get_property(WASM_TARGETS GLOBAL PROPERTY phantomchat_WASM_TARGETS)
 
   if(NOT WASM_TARGETS)
     message(WARNING "No WASM targets registered. Skipping web-dist generation.")
@@ -184,8 +184,8 @@ function(myproject_create_web_dist)
   # Generate HTML for app cards
   set(WASM_APPS_HTML "")
   foreach(target ${WASM_TARGETS})
-    get_property(TITLE GLOBAL PROPERTY myproject_WASM_TARGET_${target}_TITLE)
-    get_property(DESCRIPTION GLOBAL PROPERTY myproject_WASM_TARGET_${target}_DESCRIPTION)
+    get_property(TITLE GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_TITLE)
+    get_property(DESCRIPTION GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_DESCRIPTION)
 
     # Escape HTML special characters to prevent injection
     escape_html(TITLE_ESCAPED "${TITLE}")
@@ -202,10 +202,10 @@ function(myproject_create_web_dist)
   # Generate index.html from template
   set(INDEX_OUTPUT "${WEB_DIST_DIR}/index.html")
 
-  if(EXISTS "${myproject_INDEX_TEMPLATE}")
-    configure_file("${myproject_INDEX_TEMPLATE}" "${INDEX_OUTPUT}" @ONLY)
+  if(EXISTS "${phantomchat_INDEX_TEMPLATE}")
+    configure_file("${phantomchat_INDEX_TEMPLATE}" "${INDEX_OUTPUT}" @ONLY)
   else()
-    message(WARNING "Index template not found: ${myproject_INDEX_TEMPLATE}")
+    message(WARNING "Index template not found: ${phantomchat_INDEX_TEMPLATE}")
   endif()
 
   # Build list of copy commands
@@ -215,7 +215,7 @@ function(myproject_create_web_dist)
   # Each target gets its own service worker copy for standalone deployment
   foreach(target ${WASM_TARGETS})
     get_target_property(TARGET_BINARY_DIR ${target} BINARY_DIR)
-    get_property(OUTPUT_NAME GLOBAL PROPERTY myproject_WASM_TARGET_${target}_OUTPUT_NAME)
+    get_property(OUTPUT_NAME GLOBAL PROPERTY phantomchat_WASM_TARGET_${target}_OUTPUT_NAME)
     set(TARGET_DIST_DIR "${WEB_DIST_DIR}/${target}")
 
     # Copy WASM artifacts: .html (as index.html), .js, .wasm, and service worker
@@ -232,7 +232,7 @@ function(myproject_create_web_dist)
         "${TARGET_BINARY_DIR}/${OUTPUT_NAME}.wasm"
         "${TARGET_DIST_DIR}/${OUTPUT_NAME}.wasm"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${myproject_COI_WORKER}"
+        "${phantomchat_COI_WORKER}"
         "${TARGET_DIST_DIR}/coi-serviceworker.min.js"
     )
   endforeach()
