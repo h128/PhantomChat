@@ -21,11 +21,11 @@ RUN python3 -m pip install --upgrade pip setuptools && \
 # By default, anything you run in Docker is done as superuser.
 # Conan runs some install commands as superuser, and will prepend `sudo` to
 # these commands, unless `CONAN_SYSREQUIRES_SUDO=0` is in your env variables.
-ENV CONAN_SYSREQUIRES_SUDO 0
+ENV CONAN_SYSREQUIRES_SUDO=0
 # Some packages request that Conan use the system package manager to install
 # a few dependencies. This flag allows Conan to proceed with these installations;
 # leaving this flag undefined can cause some installation failures.
-ENV CONAN_SYSREQUIRES_MODE enabled
+ENV CONAN_SYSREQUIRES_MODE=enabled
 
 # User-settable versions:
 # This Dockerfile should support gcc-[7, 8, 9, 10, 11] and clang-[10, 11, 12, 13]
@@ -79,16 +79,18 @@ RUN apt-get update -qq && export DEBIAN_FRONTEND=noninteractive && \
         doxygen graphviz ccache cppcheck
 
 # Install include-what-you-use
-ENV IWYU /home/iwyu
-ENV IWYU_BUILD ${IWYU}/build
-ENV IWYU_SRC ${IWYU}/include-what-you-use
+ENV IWYU=/home/iwyu
+ENV IWYU_BUILD=${IWYU}/build
+ENV IWYU_SRC=${IWYU}/include-what-you-use
 RUN mkdir -p ${IWYU_BUILD} && \
     git clone --branch clang_${LLVM_VER} \
         https://github.com/include-what-you-use/include-what-you-use.git \
         ${IWYU_SRC}
 RUN CC=clang-${LLVM_VER} CXX=clang++-${LLVM_VER} cmake -S ${IWYU_SRC} \
         -B ${IWYU_BUILD} \
-        -G "Unix Makefiles" -DCMAKE_PREFIX_PATH=/usr/lib/llvm-${LLVM_VER} && \
+        -G "Unix Makefiles" \
+        -DCMAKE_PREFIX_PATH=/usr/lib/llvm-${LLVM_VER} \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && \
     cmake --build ${IWYU_BUILD} -j && \
     cmake --install ${IWYU_BUILD}
 
@@ -114,7 +116,7 @@ ENV CC=${CC:-"gcc"}
 ENV CXX=${CXX:-"g++"}
 
 # Include project
-#ADD . /workspaces/cpp_starter_project
-#WORKDIR /workspaces/cpp_starter_project
+ADD . /workspaces/cpp_starter_project
+WORKDIR /workspaces/cpp_starter_project
 
 CMD ["/bin/bash"]
