@@ -11,6 +11,13 @@ function(phantomchat_setup_dependencies)
     cpmaddpackage("gh:fmtlib/fmt#12.1.0")
   endif()
 
+  if(NOT TARGET nlohmann_json::nlohmann_json)
+    CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.12.0)
+  endif()
+
   if(NOT TARGET spdlog::spdlog)
     cpmaddpackage(
       NAME

@@ -2,7 +2,8 @@ add_executable(PhantomServer main.cpp)
 
 target_link_libraries(
   PhantomServer
-  PRIVATE phantomchat::phantomchat_options
+  PRIVATE phantomchat::sample_library
+          phantomchat::phantomchat_options
           phantomchat::phantomchat_warnings)
 
 target_link_system_libraries(
@@ -10,6 +11,7 @@ target_link_system_libraries(
   PRIVATE
           fmt::fmt
           spdlog::spdlog
+          nlohmann_json::nlohmann_json
           uWS
           )
 

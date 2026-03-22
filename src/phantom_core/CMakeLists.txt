@@ -1,7 +1,7 @@
 include(GenerateExportHeader)
 
 
-add_library(sample_library sample_library.cpp)
+add_library(sample_library sample_library.cpp FileProvider.cpp)
 
 
 

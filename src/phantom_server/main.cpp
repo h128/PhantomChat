@@ -1,16 +1,21 @@
 #include <App.h>
 #include <fmt/core.h>
-
+#include <nlohmann/json.hpp>
+#include <phantomchat/IFileProvider.hpp>
 
 int main()
 {
   fmt::print("Hello, {}...\n", "PhantomServer");
   uWS::App()
-    .get("/*",
+    .get("/",
       [](auto *res, auto *req) {
         fmt::print("Received request for {}\n", req->getUrl());
-        res->writeHeader("Content-Type", "text/plain");
-        res->end("Hello from PhantomChat!");
+        res->writeHeader("Content-Type", "text/html; charset=utf-8");
+
+        FileProvider fileProvider;
+        auto content = fileProvider.readAll("assets/index.html");
+
+        res->end(content);
       })
     .listen(8080,
       [](auto *listenSocket) {
