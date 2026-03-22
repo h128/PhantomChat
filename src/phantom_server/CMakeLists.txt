@@ -1,18 +1,19 @@
-add_executable(intro main.cpp)
+add_executable(PhantomServer main.cpp)
 
 target_link_libraries(
-  intro
+  PhantomServer
   PRIVATE phantomchat::phantomchat_options
           phantomchat::phantomchat_warnings)
 
 target_link_system_libraries(
-  intro
+  PhantomServer
   PRIVATE
           fmt::fmt
           spdlog::spdlog
+          uWS
           )
 
 
-phantomchat_configure_linker(intro)
+phantomchat_configure_linker(PhantomServer)
 
-target_include_directories(intro PRIVATE "${CMAKE_BINARY_DIR}/configured_files/include")
+target_include_directories(PhantomServer PRIVATE "${CMAKE_BINARY_DIR}/configured_files/include")
