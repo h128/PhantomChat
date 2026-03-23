@@ -1,4 +1,4 @@
-add_executable(PhantomServer main.cpp)
+add_executable(PhantomServer main.cpp contracts/PhantomRequest.cpp)
 
 target_link_libraries(
   PhantomServer
