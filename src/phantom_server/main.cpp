@@ -1,3 +1,4 @@
+#include "contracts/PhantomRequests.h"
 #include <App.h>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>

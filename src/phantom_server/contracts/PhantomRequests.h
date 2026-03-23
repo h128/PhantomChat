@@ -31,12 +31,11 @@ public:
   JoinOrCreateRoomRequest() { command = Command::JoinOrCreateRoom; }
 
   std::string room_name;
-  std::string body;
   std::string public_key;
 
   void validate() const override;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(JoinOrCreateRoomRequest, request_uuid, user_uuid, command, room_name, body, public_key)
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(JoinOrCreateRoomRequest, request_uuid, user_uuid, command, room_name, public_key)
 };
 
 // SendMessage request
@@ -53,6 +52,8 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, user_uuid, command, room_name, message)
 };
 
-using PhantomRequestPtr = std::shared_ptr<PhantomRequestBase>;
+using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;
+
+PhantomRequestPtr from_json(const std::string &jsonString);
 
 }// namespace phantomchat::contracts

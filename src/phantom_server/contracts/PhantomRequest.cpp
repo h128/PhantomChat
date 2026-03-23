@@ -17,4 +17,30 @@ void SendMessageRequest::validate() const
   if (message.empty()) { throw std::invalid_argument("message cannot be empty"); }
 }
 
+PhantomRequestPtr from_json(const std::string &jsonString)
+{
+  using json = nlohmann::json;
+
+  json jsonData = json::parse(jsonString);
+
+  if (!jsonData.contains("command")) { throw std::invalid_argument("Missing 'command' field in JSON"); }
+
+  auto cmd = static_cast<Command>(jsonData["command"]);
+
+  switch (cmd) {
+  case Command::JoinOrCreateRoom: {
+    auto request = std::make_unique<JoinOrCreateRoomRequest>(jsonData.get<JoinOrCreateRoomRequest>());
+    request->validate();
+    return request;
+  }
+  case Command::SendMessage: {
+    auto request = std::make_unique<SendMessageRequest>(jsonData.get<SendMessageRequest>());
+    request->validate();
+    return request;
+  }
+  default:
+    throw std::invalid_argument("Unknown command");
+  }
+}
+
 }// namespace phantomchat::contracts
