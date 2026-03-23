@@ -2,9 +2,9 @@
 #define IFileProvider_HPP
 
 #include <filesystem>
-#include <phantomchat/sample_library_export.hpp>
+#include <phantomchat/phantom_core_export.hpp>
 
-class SAMPLE_LIBRARY_EXPORT IFileProvider
+class PHANTOM_CORE_EXPORT IFileProvider
 {
 public:
   virtual ~IFileProvider() = default;
@@ -14,7 +14,7 @@ public:
 };
 
 
-class SAMPLE_LIBRARY_EXPORT FileProvider final : public IFileProvider
+class PHANTOM_CORE_EXPORT FileProvider final : public IFileProvider
 {
 public:
   std::string readAll(const std::string &path) const override;

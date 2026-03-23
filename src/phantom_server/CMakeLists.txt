@@ -2,7 +2,7 @@ add_executable(PhantomServer main.cpp)
 
 target_link_libraries(
   PhantomServer
-  PRIVATE phantomchat::sample_library
+  PRIVATE phantomchat::phantom_core
           phantomchat::phantomchat_options
           phantomchat::phantomchat_warnings)
 

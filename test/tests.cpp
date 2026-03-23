@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 
-#include <phantomchat/sample_library.hpp>
+#include <phantomchat/phantom_core.hpp>
 
 
 TEST_CASE("Factorials are computed", "[factorial]")

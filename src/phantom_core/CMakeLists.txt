@@ -1,34 +1,34 @@
 include(GenerateExportHeader)
 
 
-add_library(sample_library sample_library.cpp FileProvider.cpp)
+add_library(phantom_core phantom_core.cpp FileProvider.cpp)
 
 
 
-add_library(phantomchat::sample_library ALIAS sample_library)
+add_library(phantomchat::phantom_core ALIAS phantom_core)
 
-target_link_libraries(sample_library PRIVATE phantomchat_options phantomchat_warnings)
+target_link_libraries(phantom_core PRIVATE phantomchat_options phantomchat_warnings)
 
-target_include_directories(sample_library ${WARNING_GUARD} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+target_include_directories(phantom_core ${WARNING_GUARD} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                                                                   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)
 
 if (phantomchat_BUILD_FUZZ_TESTS)
-  target_link_libraries(sample_library PRIVATE -fsanitize=fuzzer-no-link)
-  target_compile_options(sample_library PRIVATE -fsanitize=fuzzer-no-link)
+  target_link_libraries(phantom_core PRIVATE -fsanitize=fuzzer-no-link)
+  target_compile_options(phantom_core PRIVATE -fsanitize=fuzzer-no-link)
 endif()
 
-target_compile_features(sample_library PUBLIC cxx_std_${CMAKE_CXX_STANDARD})
+target_compile_features(phantom_core PUBLIC cxx_std_${CMAKE_CXX_STANDARD})
 
-phantomchat_configure_linker(sample_library)
+phantomchat_configure_linker(phantom_core)
 
 set_target_properties(
-  sample_library
+  phantom_core
   PROPERTIES VERSION ${PROJECT_VERSION}
              CXX_VISIBILITY_PRESET hidden
              VISIBILITY_INLINES_HIDDEN YES)
 
-generate_export_header(sample_library EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/phantomchat/sample_library_export.hpp)
+generate_export_header(phantom_core EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/phantomchat/phantom_core_export.hpp)
 
 if(NOT BUILD_SHARED_LIBS)
-  target_compile_definitions(sample_library PUBLIC SAMPLE_LIBRARY_STATIC_DEFINE)
+  target_compile_definitions(phantom_core PUBLIC PHANTOM_CORE_STATIC_DEFINE)
 endif()

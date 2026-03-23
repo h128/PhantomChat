@@ -36,7 +36,7 @@ target_link_libraries(
   tests
   PRIVATE phantomchat::phantomchat_warnings
           phantomchat::phantomchat_options
-          phantomchat::sample_library
+          phantomchat::phantom_core
           Catch2::Catch2WithMain)
 
 phantomchat_configure_linker(tests)
