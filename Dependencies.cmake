@@ -100,4 +100,12 @@ function(phantomchat_setup_dependencies)
     target_include_directories(uWS INTERFACE ${uWebSockets_content_SOURCE_DIR}/src)
     target_link_libraries(uWS INTERFACE uSockets myZlib)
   endif()
+
+  if(NOT TARGET sodium)
+    CPMAddPackage(
+      NAME sodium
+      GITHUB_REPOSITORY robinlinden/libsodium-cmake
+      GIT_TAG cfebfd3da486d5a86c644c8b47067e5411c7599c
+    )
+  endif()
 endfunction()

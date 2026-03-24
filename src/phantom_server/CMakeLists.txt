@@ -1,4 +1,4 @@
-add_executable(PhantomServer main.cpp contracts/PhantomRequest.cpp)
+add_executable(PhantomServer main.cpp contracts/PhantomRequest.cpp services/RoomManager.cpp)
 
 target_link_libraries(
   PhantomServer
@@ -13,6 +13,7 @@ target_link_system_libraries(
           spdlog::spdlog
           nlohmann_json::nlohmann_json
           uWS
+          sodium
           )
 
 

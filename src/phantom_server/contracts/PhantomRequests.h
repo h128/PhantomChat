@@ -44,12 +44,11 @@ class SendMessageRequest final : public PhantomRequestBase
 public:
   SendMessageRequest() { command = Command::SendMessage; }
 
-  std::string room_name;
   std::string message;
 
   void validate() const override;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, user_uuid, command, room_name, message)
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, user_uuid, command, message)
 };
 
 using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;

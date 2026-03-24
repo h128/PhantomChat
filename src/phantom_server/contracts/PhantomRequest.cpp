@@ -13,7 +13,6 @@ void JoinOrCreateRoomRequest::validate() const
 void SendMessageRequest::validate() const
 {
   if (user_uuid.empty()) { throw std::invalid_argument("user_uuid cannot be empty"); }
-  if (room_name.empty()) { throw std::invalid_argument("room_name cannot be empty"); }
   if (message.empty()) { throw std::invalid_argument("message cannot be empty"); }
 }
 
