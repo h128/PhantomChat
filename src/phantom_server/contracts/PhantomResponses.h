@@ -29,6 +29,8 @@ public:
   std::string room_name;
   std::string room_key;
   bool room_created = false;// true if room was newly created, false if existing
+  std::vector<std::string> members;// list of user_uuids currently in the room
+
 
   json to_json() const
   {
@@ -37,7 +39,8 @@ public:
       { "message", message },
       { "room_name", room_name },
       { "room_key", room_key },
-      { "room_created", room_created } };
+      { "room_created", room_created },
+      { "members", members } };
   }
 };
 

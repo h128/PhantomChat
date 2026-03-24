@@ -14,7 +14,7 @@ int main()
   fmt::print("Hello, {}...\n", "PhantomServer");
 
   // Create shared room manager
-  auto room_manager = std::make_shared<phantomchat::services::RoomManager>();
+  auto &room_manager = phantomchat::services::RoomManager::getInstance();
 
   uWS::App()
     .get("/",
@@ -30,13 +30,18 @@ int main()
     .ws<PerSocketData>("/room",
       { .open = [](auto *) { fmt::print("WebSocket connected\n"); },
         .message =
-          [room_manager](auto *ws, std::string_view msg, uWS::OpCode) {
-            auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+          [&room_manager](auto *ws, std::string_view msg, uWS::OpCode) {
             fmt::print("Received message: {}\n", msg);
-
-            phantomchat::handlers::handleMessage(ws, room_manager, msg, socket_data);
+            phantomchat::handlers::handleMessage(ws, room_manager, msg);
           },
-        .close = [](auto *, int, std::string_view) { fmt::print("WebSocket disconnected\n"); } })
+        .close =
+          [&room_manager](auto *ws, int, std::string_view) {
+            auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+            if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
+              room_manager.leaveRoom({ .room_name = socket_data->room_name, .user_uuid = socket_data->user_uuid });
+            }
+            fmt::print("WebSocket disconnected\n");
+          } })
     .listen(8080,
       [](auto *listenSocket) {
         if (listenSocket) {

@@ -1,16 +1,13 @@
 #pragma once
 
-#include "../contracts/PhantomRequests.h"
-#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace phantomchat::services {
-using namespace phantomchat::contracts;
-
 struct Room
 {
   std::string room_name;
@@ -24,14 +21,26 @@ class RoomManager
 public:
   struct JoinOrCreateResult
   {
-    bool success = false;
     bool room_created = false;// true if new room was created, false if existing room
     std::string room_key;
     std::string error_message;
   };
 
+  struct RoomArgs
+  {
+    std::string room_name;
+    std::string user_uuid;
+  };
+
+
   RoomManager() = default;
   ~RoomManager() = default;
+
+  static RoomManager &getInstance()
+  {
+    static RoomManager instance;
+    return instance;
+  }
 
   // Non-copyable, non-movable
   RoomManager(const RoomManager &) = delete;
@@ -40,17 +49,19 @@ public:
   RoomManager &operator=(RoomManager &&) = delete;
 
 
-  JoinOrCreateResult joinOrCreateRoom(const JoinOrCreateRoomRequest &request);
+  JoinOrCreateResult joinOrCreateRoom(const RoomArgs &args);
 
-  std::optional<Room> getRoom(const std::string &room_name) const;
+  std::optional<std::reference_wrapper<const Room>> getRoom(const std::string &room_name) const;
 
   bool roomExists(const std::string &room_name) const;
+
+  void leaveRoom(const RoomArgs &args);
 
   std::vector<Room> getAllRooms() const;
 
 private:
   mutable std::mutex rooms_mutex;
-  std::map<std::string, Room> rooms;
+  std::unordered_map<std::string, Room> rooms;
   static std::string generateRoomKey();
 };
 
