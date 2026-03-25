@@ -98,6 +98,20 @@ macro(phantomchat_setup_options)
     option(phantomchat_ENABLE_CACHE "Enable ccache" ON)
   endif()
 
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(phantomchat_ENABLE_SANITIZER_ADDRESS OFF CACHE BOOL "Enable address sanitizer" FORCE)
+    set(phantomchat_ENABLE_SANITIZER_LEAK OFF CACHE BOOL "Enable leak sanitizer" FORCE)
+    set(phantomchat_ENABLE_SANITIZER_UNDEFINED OFF CACHE BOOL "Enable undefined sanitizer" FORCE)
+    set(phantomchat_ENABLE_SANITIZER_THREAD OFF CACHE BOOL "Enable thread sanitizer" FORCE)
+    set(phantomchat_ENABLE_SANITIZER_MEMORY OFF CACHE BOOL "Enable memory sanitizer" FORCE)
+    set(phantomchat_ENABLE_CLANG_TIDY OFF CACHE BOOL "Enable clang-tidy" FORCE)
+    set(phantomchat_ENABLE_CPPCHECK OFF CACHE BOOL "Enable cpp-check analysis" FORCE)
+    set(phantomchat_ENABLE_COVERAGE OFF CACHE BOOL "Enable coverage reporting" FORCE)
+    set(phantomchat_ENABLE_CACHE OFF CACHE BOOL "Enable ccache" FORCE)
+    set(phantomchat_BUILD_FUZZ_TESTS OFF CACHE BOOL "Enable fuzz testing executable" FORCE)
+    set(BUILD_TESTING OFF CACHE BOOL "Enable testing" FORCE)
+  endif()
+
   if(NOT PROJECT_IS_TOP_LEVEL)
     mark_as_advanced(
       phantomchat_ENABLE_IPO
@@ -136,7 +150,9 @@ macro(phantomchat_global_options)
 
   if(phantomchat_ENABLE_HARDENING AND phantomchat_ENABLE_GLOBAL_HARDENING)
     include(cmake/Hardening.cmake)
-    if(NOT SUPPORTS_UBSAN 
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+      set(ENABLE_UBSAN_MINIMAL_RUNTIME FALSE)
+    elseif(NOT SUPPORTS_UBSAN 
        OR phantomchat_ENABLE_SANITIZER_UNDEFINED
        OR phantomchat_ENABLE_SANITIZER_ADDRESS
        OR phantomchat_ENABLE_SANITIZER_THREAD
@@ -222,7 +238,9 @@ macro(phantomchat_local_options)
 
   if(phantomchat_ENABLE_HARDENING AND NOT phantomchat_ENABLE_GLOBAL_HARDENING)
     include(cmake/Hardening.cmake)
-    if(NOT SUPPORTS_UBSAN 
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+      set(ENABLE_UBSAN_MINIMAL_RUNTIME FALSE)
+    elseif(NOT SUPPORTS_UBSAN 
        OR phantomchat_ENABLE_SANITIZER_UNDEFINED
        OR phantomchat_ENABLE_SANITIZER_ADDRESS
        OR phantomchat_ENABLE_SANITIZER_THREAD
