@@ -1,18 +1,27 @@
 #pragma once
 
-#include "../contracts/PerSocketData.h"
-#include "../contracts/PhantomRequests.h"
-#include "../contracts/PhantomResponses.h"
-#include "../events/Events.h"
-#include "../services/RoomManager.h"
 #include <App.h>
 #include <memory>
+#include <phantomchat/contracts/PerSocketData.h>
+#include <phantomchat/contracts/PhantomRequests.h>
+#include <phantomchat/contracts/PhantomResponses.h>
+#include <phantomchat/events/Events.h>
+#include <phantomchat/services/RoomManager.h>
 
 namespace phantomchat::handlers {
 
 using namespace phantomchat::services;
 using namespace phantomchat::contracts;
 using namespace phantomchat::events;
+
+template<typename WS_TYPE, typename EventType>
+void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
+{
+  json j = event;
+  const std::string payload = j.dump();
+  ws->publish(topic, payload, uWS::OpCode::TEXT);
+}
+
 
 template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessageRequest *request)
 {
@@ -31,7 +40,8 @@ template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessage
   dispatch_event(ws, NewMessageReceivedEvent(sender_uuid, request->message), topic);
 }
 
-template<typename WS_TYPE> void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager)
+template<typename WS_TYPE, typename APP_TYPE>
+void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, APP_TYPE *app)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
@@ -40,7 +50,14 @@ template<typename WS_TYPE> void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_m
 
     room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
-    dispatch_event(ws, LeaveRoomEvent(user_uuid), topic);
+    LeaveRoomEvent leaveRoomEvent(user_uuid);
+
+    if (app != nullptr) {
+      // underlying WebSocket connection closed, inform other clients
+      app->publish(topic, json(leaveRoomEvent).dump(), uWS::OpCode::TEXT);
+    } else /* client requested to leave the room*/ {
+      dispatch_event(ws, leaveRoomEvent, topic);
+    }
 
     socket_data->clear();
   }
@@ -105,7 +122,7 @@ template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_man
       handleSendMessage(ws, dynamic_cast<SendMessageRequest *>(request.get()));
       break;
     case Command::LeaveRoom:
-      handleLeaveRoom(ws, room_manager);
+      handleLeaveRoom(ws, room_manager, static_cast<uWS::App *>(nullptr));
       break;
     }
   } catch (const std::invalid_argument &e) {

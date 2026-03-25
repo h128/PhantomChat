@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <phantomchat/phantom_core_export.hpp>
 #include <string_view>
 
 using json = nlohmann::json;
@@ -11,7 +12,7 @@ namespace phantomchat::contracts {
 enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3 };
 
 // Base request class
-class PhantomRequestBase
+class PHANTOM_CORE_EXPORT PhantomRequestBase
 {
 public:
   virtual ~PhantomRequestBase() = default;
@@ -24,7 +25,7 @@ public:
 };
 
 // JoinOrCreateRoom request
-class JoinOrCreateRoomRequest final : public PhantomRequestBase
+class PHANTOM_CORE_EXPORT JoinOrCreateRoomRequest final : public PhantomRequestBase
 {
 public:
   JoinOrCreateRoomRequest() { command = Command::JoinOrCreateRoom; }
@@ -39,7 +40,7 @@ public:
 };
 
 // SendMessage request
-class SendMessageRequest final : public PhantomRequestBase
+class PHANTOM_CORE_EXPORT SendMessageRequest final : public PhantomRequestBase
 {
 public:
   SendMessageRequest() { command = Command::SendMessage; }
@@ -51,7 +52,7 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, command, message)
 };
 
-class LeaveRoomRequest final : public PhantomRequestBase
+class PHANTOM_CORE_EXPORT LeaveRoomRequest final : public PhantomRequestBase
 {
 public:
   LeaveRoomRequest() { command = Command::LeaveRoom; }
@@ -65,6 +66,6 @@ public:
 
 using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;
 
-PhantomRequestPtr from_json(std::string_view jsonString);
+PHANTOM_CORE_EXPORT PhantomRequestPtr from_json(std::string_view jsonString);
 
 }// namespace phantomchat::contracts

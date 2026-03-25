@@ -1,13 +1,16 @@
 include(GenerateExportHeader)
 
 
-add_library(phantom_core phantom_core.cpp FileProvider.cpp)
+add_library(phantom_core phantom_core.cpp FileProvider.cpp PhantomRequest.cpp RoomManager.cpp)
 
 
 
 add_library(phantomchat::phantom_core ALIAS phantom_core)
 
 target_link_libraries(phantom_core PRIVATE phantomchat_options phantomchat_warnings)
+
+target_link_system_libraries(phantom_core PUBLIC nlohmann_json::nlohmann_json)
+target_link_system_libraries(phantom_core PUBLIC sodium)
 
 target_include_directories(phantom_core ${WARNING_GUARD} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                                                                   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)

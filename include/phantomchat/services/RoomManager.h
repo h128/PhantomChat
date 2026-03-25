@@ -3,12 +3,13 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <phantomchat/phantom_core_export.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace phantomchat::services {
-struct Room
+struct PHANTOM_CORE_EXPORT Room
 {
   std::string room_name;
   std::string room_key;
@@ -16,7 +17,7 @@ struct Room
   std::string created_by;// user_uuid who created the room
 };
 
-class RoomManager
+class PHANTOM_CORE_EXPORT RoomManager
 {
 public:
   struct JoinOrCreateResult

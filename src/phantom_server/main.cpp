@@ -1,11 +1,10 @@
-#include "contracts/PerSocketData.h"
-#include "contracts/PhantomRequests.h"
 #include "handlers/RequestHandler.h"
-#include "services/RoomManager.h"
 #include <App.h>
 #include <fmt/core.h>
-#include <nlohmann/json.hpp>
 #include <phantomchat/IFileProvider.hpp>
+#include <phantomchat/contracts/PerSocketData.h>
+#include <phantomchat/contracts/PhantomRequests.h>
+#include <phantomchat/services/RoomManager.h>
 
 using namespace phantomchat::contracts;
 using namespace phantomchat::services;
@@ -41,12 +40,7 @@ int main()
         .close =
           [&room_manager, &app](auto *ws, int, std::string_view) {
             fmt::print("WebSocket closed\n");
-            auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-            if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
-              nlohmann::json j = phantomchat::events::LeaveRoomEvent(socket_data->user_uuid);
-              app.publish(socket_data->room_name, j.dump(), uWS::OpCode::TEXT);
-            }
-            phantomchat::handlers::handleLeaveRoom(ws, room_manager);
+            phantomchat::handlers::handleLeaveRoom(ws, room_manager, &app);
           } })
     .listen(ListenPort,
       [](auto *listenSocket) {
