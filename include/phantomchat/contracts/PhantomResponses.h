@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <phantomchat/phantom_core_export.hpp>
 #include <string>
 
 using json = nlohmann::json;
@@ -10,7 +11,7 @@ namespace phantomchat::contracts {
 enum class ResponseStatus { Success = 0, Error = 1 };
 
 // Base response class
-class PhantomResponseBase
+class PHANTOM_CORE_EXPORT PhantomResponseBase
 {
 public:
   virtual ~PhantomResponseBase() = default;
@@ -21,7 +22,7 @@ public:
 };
 
 // JoinOrCreateRoom response
-class JoinOrCreateRoomResponse final : public PhantomResponseBase
+class PHANTOM_CORE_EXPORT JoinOrCreateRoomResponse final : public PhantomResponseBase
 {
 public:
   JoinOrCreateRoomResponse() { status = ResponseStatus::Success; }
@@ -44,17 +45,19 @@ public:
   }
 };
 
-class SendMessageResponse final : public PhantomResponseBase
+class PHANTOM_CORE_EXPORT SendMessageResponse final : public PhantomResponseBase
 {
 public:
   SendMessageResponse() { status = ResponseStatus::Success; }
 
   json to_json() const
-  { return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } }; }
+  {
+    return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } };
+  }
 };
 
 // Error response
-class ErrorResponse final : public PhantomResponseBase
+class PHANTOM_CORE_EXPORT ErrorResponse final : public PhantomResponseBase
 {
 public:
   ErrorResponse(const std::string &err_message = "")
@@ -64,7 +67,9 @@ public:
   }
 
   json to_json() const
-  { return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } }; }
+  {
+    return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } };
+  }
 };
 
 }// namespace phantomchat::contracts

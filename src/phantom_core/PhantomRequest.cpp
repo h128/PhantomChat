@@ -1,4 +1,4 @@
-#include "PhantomRequests.h"
+#include <phantomchat/contracts/PhantomRequests.h>
 #include <stdexcept>
 
 namespace phantomchat::contracts {

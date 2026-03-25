@@ -1,7 +1,7 @@
 #pragma once
-#include <WebSocketProtocol.h>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <phantomchat/phantom_core_export.hpp>
 #include <string>
 #include <string_view>
 
@@ -9,7 +9,7 @@
 using json = nlohmann::json;
 namespace phantomchat::events {
 
-class EventBase
+class PHANTOM_CORE_EXPORT EventBase
 {
 public:
   explicit EventBase(std::string_view event_name_) : event_name(event_name_) {}
@@ -18,7 +18,7 @@ public:
   std::string_view event_name;
 };
 
-class RoomCreatedEvent final : public EventBase
+class PHANTOM_CORE_EXPORT RoomCreatedEvent final : public EventBase
 {
 public:
   explicit RoomCreatedEvent(std::string room_name_) : EventBase("RoomCreated"), room_name(std::move(room_name_)) {}
@@ -28,7 +28,7 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RoomCreatedEvent, event_name, room_name)
 };
 
-class UserEnteredRoomEvent final : public EventBase
+class PHANTOM_CORE_EXPORT UserEnteredRoomEvent final : public EventBase
 {
 public:
   explicit UserEnteredRoomEvent(std::string room_name_, std::string user_uuid_)
@@ -41,7 +41,7 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(UserEnteredRoomEvent, event_name, room_name, user_uuid)
 };
 
-class NewMessageReceivedEvent final : public EventBase
+class PHANTOM_CORE_EXPORT NewMessageReceivedEvent final : public EventBase
 {
 public:
   explicit NewMessageReceivedEvent(std::string sender_uuid_, std::string message_)
@@ -54,7 +54,7 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(NewMessageReceivedEvent, event_name, sender_uuid, message)
 };
 
-class LeaveRoomEvent final : public EventBase
+class PHANTOM_CORE_EXPORT LeaveRoomEvent final : public EventBase
 {
 public:
   explicit LeaveRoomEvent(std::string user_uuid_) : EventBase("LeaveRoom"), user_uuid(std::move(user_uuid_)) {}
@@ -64,13 +64,5 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(LeaveRoomEvent, event_name, user_uuid)
 };
 
-
-template<typename WS_TYPE, typename EventType>
-void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
-{
-  json j = event;
-  const std::string payload = j.dump();
-  ws->publish(topic, payload, uWS::OpCode::TEXT);
-}
 
 }// namespace phantomchat::events
