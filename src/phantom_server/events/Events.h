@@ -3,6 +3,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 
 using json = nlohmann::json;
@@ -11,10 +12,10 @@ namespace phantomchat::events {
 class EventBase
 {
 public:
-  explicit EventBase(std::string event_name_) : event_name(std::move(event_name_)) {}
+  explicit EventBase(std::string_view event_name_) : event_name(event_name_) {}
   virtual ~EventBase() = default;
 
-  std::string event_name;
+  std::string_view event_name;
 };
 
 class RoomCreatedEvent final : public EventBase
@@ -39,6 +40,30 @@ public:
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(UserEnteredRoomEvent, event_name, room_name, user_uuid)
 };
+
+class NewMessageReceivedEvent final : public EventBase
+{
+public:
+  explicit NewMessageReceivedEvent(std::string sender_uuid_, std::string message_)
+    : EventBase("NewMessageReceived"), sender_uuid(std::move(sender_uuid_)), message(std::move(message_))
+  {}
+
+  std::string sender_uuid;
+  std::string message;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NewMessageReceivedEvent, event_name, sender_uuid, message)
+};
+
+class LeaveRoomEvent final : public EventBase
+{
+public:
+  explicit LeaveRoomEvent(std::string user_uuid_) : EventBase("LeaveRoom"), user_uuid(std::move(user_uuid_)) {}
+
+  std::string user_uuid;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(LeaveRoomEvent, event_name, user_uuid)
+};
+
 
 template<typename WS_TYPE, typename EventType>
 void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)

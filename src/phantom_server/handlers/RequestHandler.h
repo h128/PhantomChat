@@ -14,12 +14,43 @@ using namespace phantomchat::services;
 using namespace phantomchat::contracts;
 using namespace phantomchat::events;
 
-template<typename WS_TYPE>
-void handleJoinOrCreateRoom(WS_TYPE *ws,
-  RoomManager &room_manager,
-  const JoinOrCreateRoomRequest *request,
-  PerSocketData *socket_data)
+template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessageRequest *request)
 {
+  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+  if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
+    throw std::invalid_argument("User not in a room");
+  }
+  SendMessageResponse response;
+  response.request_uuid = request->request_uuid;
+  response.message = request->message;
+
+  ws->send(response.to_json().dump(), uWS::OpCode::TEXT);
+
+  const std::string topic = socket_data->room_name;
+  const std::string sender_uuid = socket_data->user_uuid;
+  dispatch_event(ws, NewMessageReceivedEvent(sender_uuid, request->message), topic);
+}
+
+template<typename WS_TYPE> void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager)
+{
+  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+  if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
+    const std::string topic = socket_data->room_name;
+    const std::string user_uuid = socket_data->user_uuid;
+
+    room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
+
+    dispatch_event(ws, LeaveRoomEvent(user_uuid), topic);
+
+    socket_data->clear();
+  }
+}
+
+
+template<typename WS_TYPE>
+void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOrCreateRoomRequest *request)
+{
+  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
 
   auto result = room_manager.joinOrCreateRoom({ .room_name = request->room_name, .user_uuid = request->user_uuid });
 
@@ -27,11 +58,10 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
   response.request_uuid = request->request_uuid;
   response.room_name = request->room_name;
 
-
-  response.status = ResponseStatus::Success;
   response.room_key = result.room_key;
   response.room_created = result.room_created;
   response.message = result.room_created ? "Room created successfully" : "Joined room successfully";
+
   auto roomOpt = room_manager.getRoom(request->room_name);
   if (roomOpt) {
     const Room &room = roomOpt->get();
@@ -39,9 +69,7 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
   }
 
   // Update socket data
-  socket_data->user_uuid = request->user_uuid;
-  socket_data->room_name = request->room_name;
-  socket_data->public_key = request->public_key;
+  socket_data->assign(request->user_uuid, request->room_name, request->public_key);
 
   // Subscribe to room updates
   ws->subscribe(request->room_name);
@@ -55,26 +83,35 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
 }
 
 
-template<typename WS_TYPE>
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void handleMessage(WS_TYPE *ws, RoomManager &room_manager, std::string_view msg)
+template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid)
 {
+  ErrorResponse error(message);
+  error.request_uuid = request_uuid;
+  ws->send(error.to_json().dump(), uWS::OpCode::TEXT);
+}
+
+
+template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_manager, std::string_view msg)
+{
+  PhantomRequestPtr request;
   try {
-    auto request = from_json(std::string(msg));
-    auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+    request = from_json(msg);
 
     switch (request->command) {
     case Command::JoinOrCreateRoom:
-      handleJoinOrCreateRoom(ws, room_manager, dynamic_cast<JoinOrCreateRoomRequest *>(request.get()), socket_data);
+      handleJoinOrCreateRoom(ws, room_manager, dynamic_cast<JoinOrCreateRoomRequest *>(request.get()));
       break;
     case Command::SendMessage:
-      // TODO: Implement send message handler
+      handleSendMessage(ws, dynamic_cast<SendMessageRequest *>(request.get()));
+      break;
+    case Command::LeaveRoom:
+      handleLeaveRoom(ws, room_manager);
       break;
     }
-  } catch (const std::exception &e) {
-    ErrorResponse error(e.what());
-    error.request_uuid = "unknown";
-    ws->send(error.to_json().dump(), uWS::OpCode::TEXT);
+  } catch (const std::invalid_argument &e) {
+    sendError(ws, e.what(), request ? request->request_uuid : "unknown");
+  } catch (const std::exception &) {
+    sendError(ws, "An unexpected error occurred", request ? request->request_uuid : "unknown");
   }
 }
 

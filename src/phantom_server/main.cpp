@@ -4,19 +4,23 @@
 #include "services/RoomManager.h"
 #include <App.h>
 #include <fmt/core.h>
-#include <memory>
 #include <nlohmann/json.hpp>
 #include <phantomchat/IFileProvider.hpp>
 
 using namespace phantomchat::contracts;
+using namespace phantomchat::services;
+
 int main()
 {
   fmt::print("Hello, {}...\n", "PhantomServer");
 
   // Create shared room manager
-  auto &room_manager = phantomchat::services::RoomManager::getInstance();
+  auto &room_manager = RoomManager::getInstance();
+  constexpr static int ListenPort = 8080;
 
-  uWS::App()
+  uWS::App app;
+
+  app
     .get("/",
       [](auto *res, auto *req) {
         fmt::print("Received request for {}\n", req->getUrl());
@@ -31,23 +35,25 @@ int main()
       { .open = [](auto *) { fmt::print("WebSocket connected\n"); },
         .message =
           [&room_manager](auto *ws, std::string_view msg, uWS::OpCode) {
-            fmt::print("Received message: {}\n", msg);
+            fmt::print("new message received!\n");
             phantomchat::handlers::handleMessage(ws, room_manager, msg);
           },
         .close =
-          [&room_manager](auto *ws, int, std::string_view) {
+          [&room_manager, &app](auto *ws, int, std::string_view) {
+            fmt::print("WebSocket closed\n");
             auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
             if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
-              room_manager.leaveRoom({ .room_name = socket_data->room_name, .user_uuid = socket_data->user_uuid });
+              nlohmann::json j = phantomchat::events::LeaveRoomEvent(socket_data->user_uuid);
+              app.publish(socket_data->room_name, j.dump(), uWS::OpCode::TEXT);
             }
-            fmt::print("WebSocket disconnected\n");
+            phantomchat::handlers::handleLeaveRoom(ws, room_manager);
           } })
-    .listen(8080,
+    .listen(ListenPort,
       [](auto *listenSocket) {
         if (listenSocket) {
-          std::cout << "Server listening on http://localhost:8080" << std::endl;
+          fmt::print("Server listening on http://localhost:{}\n", ListenPort);
         } else {
-          std::cerr << "Failed to listen on port 8080" << std::endl;
+          fmt::print(stderr, "Failed to listen on port {}\n", ListenPort);
         }
       })
     .run();

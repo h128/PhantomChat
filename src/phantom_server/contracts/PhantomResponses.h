@@ -44,6 +44,15 @@ public:
   }
 };
 
+class SendMessageResponse final : public PhantomResponseBase
+{
+public:
+  SendMessageResponse() { status = ResponseStatus::Success; }
+
+  json to_json() const
+  { return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } }; }
+};
+
 // Error response
 class ErrorResponse final : public PhantomResponseBase
 {
@@ -55,9 +64,7 @@ public:
   }
 
   json to_json() const
-  {
-    return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } };
-  }
+  { return json{ { "request_uuid", request_uuid }, { "status", static_cast<int>(status) }, { "message", message } }; }
 };
 
 }// namespace phantomchat::contracts

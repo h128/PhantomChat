@@ -12,11 +12,10 @@ void JoinOrCreateRoomRequest::validate() const
 
 void SendMessageRequest::validate() const
 {
-  if (user_uuid.empty()) { throw std::invalid_argument("user_uuid cannot be empty"); }
   if (message.empty()) { throw std::invalid_argument("message cannot be empty"); }
 }
 
-PhantomRequestPtr from_json(const std::string &jsonString)
+PhantomRequestPtr from_json(std::string_view jsonString)
 {
   using json = nlohmann::json;
 
@@ -35,6 +34,10 @@ PhantomRequestPtr from_json(const std::string &jsonString)
   case Command::SendMessage: {
     auto request = std::make_unique<SendMessageRequest>(jsonData.get<SendMessageRequest>());
     request->validate();
+    return request;
+  }
+  case Command::LeaveRoom: {
+    auto request = std::make_unique<LeaveRoomRequest>(jsonData.get<LeaveRoomRequest>());
     return request;
   }
   default:

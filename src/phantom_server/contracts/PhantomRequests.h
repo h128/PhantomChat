@@ -2,13 +2,13 @@
 
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <string>
+#include <string_view>
 
 using json = nlohmann::json;
 
 namespace phantomchat::contracts {
 
-enum class Command { JoinOrCreateRoom = 1, SendMessage = 2 };
+enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3 };
 
 // Base request class
 class PhantomRequestBase
@@ -17,7 +17,6 @@ public:
   virtual ~PhantomRequestBase() = default;
 
   std::string request_uuid;
-  std::string user_uuid;
   Command command;
 
 
@@ -30,6 +29,7 @@ class JoinOrCreateRoomRequest final : public PhantomRequestBase
 public:
   JoinOrCreateRoomRequest() { command = Command::JoinOrCreateRoom; }
 
+  std::string user_uuid;
   std::string room_name;
   std::string public_key;
 
@@ -48,11 +48,23 @@ public:
 
   void validate() const override;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, user_uuid, command, message)
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, command, message)
+};
+
+class LeaveRoomRequest final : public PhantomRequestBase
+{
+public:
+  LeaveRoomRequest() { command = Command::LeaveRoom; }
+
+  void validate() const override
+  { /* No additional validation needed for leaving a room */
+  }
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(LeaveRoomRequest, request_uuid, command)
 };
 
 using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;
 
-PhantomRequestPtr from_json(const std::string &jsonString);
+PhantomRequestPtr from_json(std::string_view jsonString);
 
 }// namespace phantomchat::contracts
