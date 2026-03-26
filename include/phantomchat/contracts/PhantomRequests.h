@@ -1,11 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <phantomchat/phantom_core_export.hpp>
+#include <string>
 #include <string_view>
-
-using json = nlohmann::json;
 
 namespace phantomchat::contracts {
 
@@ -35,8 +33,6 @@ public:
   std::string public_key;
 
   void validate() const override;
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(JoinOrCreateRoomRequest, request_uuid, user_uuid, command, room_name, public_key)
 };
 
 // SendMessage request
@@ -48,8 +44,6 @@ public:
   std::string message;
 
   void validate() const override;
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SendMessageRequest, request_uuid, command, message)
 };
 
 class PHANTOM_CORE_EXPORT LeaveRoomRequest final : public PhantomRequestBase
@@ -60,8 +54,6 @@ public:
   void validate() const override
   { /* No additional validation needed for leaving a room */
   }
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(LeaveRoomRequest, request_uuid, command)
 };
 
 using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;

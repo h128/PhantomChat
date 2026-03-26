@@ -3,18 +3,14 @@
 #include <fmt/core.h>
 #include <phantomchat/IFileProvider.hpp>
 #include <phantomchat/contracts/PerSocketData.h>
-#include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/services/RoomManager.h>
-
-using namespace phantomchat::contracts;
-using namespace phantomchat::services;
 
 int main()
 {
   fmt::print("Hello, {}...\n", "PhantomServer");
 
   // Create shared room manager
-  auto &room_manager = RoomManager::getInstance();
+  auto &room_manager = phantomchat::services::RoomManager::getInstance();
   constexpr static int ListenPort = 8080;
 
   uWS::App app;
@@ -30,7 +26,7 @@ int main()
 
         res->end(content);
       })
-    .ws<PerSocketData>("/room",
+    .ws<phantomchat::contracts::PerSocketData>("/room",
       { .open = [](auto *) { fmt::print("WebSocket connected\n"); },
         .message =
           [&room_manager](auto *ws, std::string_view msg, uWS::OpCode) {

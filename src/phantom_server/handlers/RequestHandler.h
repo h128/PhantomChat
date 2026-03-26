@@ -2,6 +2,7 @@
 
 #include <App.h>
 #include <memory>
+#include <phantomchat/JsonMapper.hpp>
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/contracts/PhantomResponses.h>
@@ -33,7 +34,7 @@ template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessage
   response.request_uuid = request->request_uuid;
   response.message = request->message;
 
-  ws->send(response.to_json().dump(), uWS::OpCode::TEXT);
+  ws->send(json(response).dump(), uWS::OpCode::TEXT);
 
   const std::string topic = socket_data->room_name;
   const std::string sender_uuid = socket_data->user_uuid;
@@ -91,7 +92,7 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   // Subscribe to room updates
   ws->subscribe(request->room_name);
 
-  ws->send(response.to_json().dump(), uWS::OpCode::TEXT);
+  ws->send(json(response).dump(), uWS::OpCode::TEXT);
 
   // Dispatch events
   const std::string topic = request->room_name;
@@ -104,7 +105,7 @@ template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &messag
 {
   ErrorResponse error(message);
   error.request_uuid = request_uuid;
-  ws->send(error.to_json().dump(), uWS::OpCode::TEXT);
+  ws->send(json(error).dump(), uWS::OpCode::TEXT);
 }
 
 

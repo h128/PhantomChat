@@ -1,3 +1,4 @@
+#include <phantomchat/JsonMapper.hpp>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <stdexcept>
 
@@ -17,8 +18,6 @@ void SendMessageRequest::validate() const
 
 PhantomRequestPtr from_json(std::string_view jsonString)
 {
-  using json = nlohmann::json;
-
   json jsonData = json::parse(jsonString);
 
   if (!jsonData.contains("command")) { throw std::invalid_argument("Missing 'command' field in JSON"); }
