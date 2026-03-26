@@ -31,7 +31,7 @@ function(phantomchat_setup_dependencies)
   endif()
 
   if(NOT TARGET Catch2::Catch2WithMain)
-    cpmaddpackage("gh:catchorg/Catch2@3.12.0")
+    cpmaddpackage("gh:catchorg/Catch2@3.13.0")
   endif()
 
   # If zlib already exists (system or previous FetchContent), use it

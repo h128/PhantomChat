@@ -185,7 +185,7 @@ You can use the `ctest` command run the tests.
 
 ```shell
 cd ./build
-ctest -C Debug
+ctest -R "unittests"
 cd ../
 ```
 
