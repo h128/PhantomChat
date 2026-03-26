@@ -47,7 +47,7 @@ You can configure and build [as directed above](#build) using these commands:
 ```bash
 /starter_project# mkdir build
 /starter_project# cmake -S . -B ./build
-/starter_project# cmake --build ./build
+/starter_project# cmake --build ./build -j
 ```
 
 You can configure and build using `clang-13`, without rebuilding the container,
@@ -56,7 +56,7 @@ with these commands:
 ```bash
 /starter_project# mkdir build
 /starter_project# CC=clang CXX=clang++ cmake -S . -B ./build
-/starter_project# cmake --build ./build
+/starter_project# cmake --build ./build -j
 ```
 
 The `ccmake` tool is also installed; you can substitute `ccmake` for `cmake` to

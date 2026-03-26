@@ -1,7 +1,7 @@
 include(GenerateExportHeader)
 
 
-add_library(phantom_core phantom_core.cpp FileProvider.cpp PhantomRequest.cpp RoomManager.cpp JsonMapper.cpp)
+add_library(phantom_core FileProvider.cpp PhantomRequest.cpp RoomManager.cpp JsonMapper.cpp)
 
 
 
