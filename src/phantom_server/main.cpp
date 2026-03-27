@@ -1,9 +1,11 @@
 #include "handlers/RequestHandler.h"
+#include "handlers/StaticFileHandler.h"
 #include <App.h>
 #include <fmt/core.h>
-#include <phantomchat/IFileProvider.hpp>
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/services/RoomManager.h>
+#include <phantomchat/utils/CacheFileProvider.hpp>
+#include <string_view>
 
 int main()
 {
@@ -13,19 +15,15 @@ int main()
   auto &room_manager = phantomchat::services::RoomManager::getInstance();
   constexpr static int ListenPort = 8080;
 
+  phantomchat::utils::CacheFileProvider fileProvider("assets");
+
   uWS::App app;
 
-  app
-    .get("/",
-      [](auto *res, auto *req) {
-        fmt::print("Received request for {}\n", req->getUrl());
-        res->writeHeader("Content-Type", "text/html; charset=utf-8");
+  auto handleStaticFileWithCache = [&fileProvider](auto *res, auto *req) {
+    phantomchat::handlers::handleStaticFile(res, req, fileProvider);
+  };
 
-        FileProvider fileProvider;
-        auto content = fileProvider.readAll("assets/index.html");
-
-        res->end(content);
-      })
+  app.get("/*", handleStaticFileWithCache)
     .ws<phantomchat::contracts::PerSocketData>("/room",
       { .open = [](auto *) { fmt::print("WebSocket connected\n"); },
         .message =
