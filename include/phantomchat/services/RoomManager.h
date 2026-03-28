@@ -24,7 +24,7 @@ public:
   {
     bool room_created = false;// true if new room was created, false if existing room
     std::string room_key;
-    std::string error_message;
+    std::vector<std::string> members;// list of user_uuids
   };
 
   struct RoomArgs

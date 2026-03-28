@@ -101,13 +101,16 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
 
   auto bytes = std::make_shared<std::vector<char>>(fileProvider.readBytesRef(assetPath));
   auto offset = std::make_shared<std::size_t>(0U);
+  auto finished = std::make_shared<bool>(false);
 
-  res->onAborted([bytes, offset] {
+  res->onAborted([bytes, finished] {
+    *finished = true;
     bytes->clear();
     bytes->shrink_to_fit();// Release memory immediately
   });
 
-  res->onWritable([res, bytes, offset](std::uintmax_t) mutable {
+  res->onWritable([res, bytes, offset, finished](std::uintmax_t) mutable {
+    if (*finished) { return false; }
     while (*offset < bytes->size()) {
       const auto remaining = bytes->size() - *offset;
       const auto chunkSize = std::min<std::size_t>(ChunkSizeBytes, remaining);
@@ -115,6 +118,7 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
       *offset += chunkSize;
       if (!ok) { return true; }
     }
+    *finished = true;
     res->end();
     return false;
   });
@@ -126,7 +130,10 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
     *offset += chunkSize;
     if (!ok) { break; }
   }
-  if (*offset >= bytes->size()) { res->end(); }
+  if (*offset >= bytes->size() && !*finished) {
+    *finished = true;
+    res->end();
+  }
 }
 
 }// namespace phantomchat::handlers

@@ -78,13 +78,8 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
 
   response.room_key = result.room_key;
   response.room_created = result.room_created;
+  response.members = result.members;
   response.message = result.room_created ? "Room created successfully" : "Joined room successfully";
-
-  auto roomOpt = room_manager.getRoom(request->room_name);
-  if (roomOpt) {
-    const Room &room = roomOpt->get();
-    response.members = room.members;
-  }
 
   // Update socket data
   socket_data->assign(request->user_uuid, request->room_name, request->public_key);

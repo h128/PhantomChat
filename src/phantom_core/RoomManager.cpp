@@ -9,7 +9,6 @@ namespace phantomchat::services {
 std::string RoomManager::generateRoomKey()
 {
   constexpr int ROOM_KEY_SIZE = 32;
-  if (sodium_init() == -1) { throw std::runtime_error("Failed to initialize libsodium"); }
 
   std::array<unsigned char, ROOM_KEY_SIZE> key{};
   randombytes_buf(key.data(), key.size());
@@ -38,7 +37,7 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
       members.push_back(args.user_uuid);
     }
 
-    return { .room_created = false, .room_key = room.room_key, .error_message = "" };
+    return { .room_created = false, .room_key = room.room_key, .members = members };
   } else {
     // Room doesn't exist, create it
 
@@ -47,7 +46,7 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
       .members = { args.user_uuid },
       .created_by = args.user_uuid };
 
-    JoinOrCreateResult response{ .room_created = true, .room_key = new_room.room_key, .error_message = "" };
+    JoinOrCreateResult response{ .room_created = true, .room_key = new_room.room_key, .members = new_room.members };
     rooms.emplace(args.room_name, std::move(new_room));
 
     return response;

@@ -14,7 +14,6 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
   const auto result = manager.joinOrCreateRoom(args);
 
   REQUIRE(result.room_created);
-  REQUIRE(result.error_message.empty());
   REQUIRE(result.room_key.size() == 64);
   REQUIRE(manager.roomExists(room_name));
 

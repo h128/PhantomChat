@@ -6,10 +6,13 @@
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/services/RoomManager.h>
 #include <phantomchat/utils/CacheFileProvider.hpp>
+#include <sodium.h>
 #include <string_view>
 
 int main()
 {
+  if (sodium_init() == -1) { throw std::runtime_error("Failed to initialize libsodium"); }
+
   fmt::print("Hello, {}...\n", "PhantomServer");
 
   phantomchat::config::AppSettings settings;
