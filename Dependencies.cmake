@@ -34,16 +34,7 @@ function(phantomchat_setup_dependencies)
     cpmaddpackage("gh:catchorg/Catch2@3.13.0")
   endif()
 
-  # If zlib already exists (system or previous FetchContent), use it
-  find_package(ZLIB QUIET)
-
-  if(ZLIB_FOUND)
-    message(STATUS "Using existing ZLIB: ${ZLIB_INCLUDE_DIRS}")
-    add_library(myZlib INTERFACE IMPORTED)
-    target_include_directories(myZlib INTERFACE ${ZLIB_INCLUDE_DIRS})
-    target_link_libraries(myZlib INTERFACE ${ZLIB_LIBRARIES})
-  else()
-    # Otherwise, fetch and build zlib manually
+  if(NOT TARGET myZlib)
     FetchContent_Declare(
       zlib_content
       GIT_REPOSITORY https://github.com/madler/zlib.git

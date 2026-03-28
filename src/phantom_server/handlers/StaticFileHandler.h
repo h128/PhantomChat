@@ -87,22 +87,25 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
   }
 
   res->writeHeader("Content-Type", fileProvider.mimeType(assetPath));
-  res->writeHeader("Cache-Control", "public, max-age=3600");
+  res->writeHeader("Cache-Control", "public, max-age=7200");
   res->writeHeader("ETag", etag);
   res->writeHeader("Last-Modified", lastModifiedStr);
 
   if (fileSizeBytes < ChunkedTransferThresholdBytes) {
-    const auto bytes = fileProvider.readAllBytes(assetPath);
+    const auto &bytes = fileProvider.readBytesRef(assetPath);
     res->end(std::string_view(bytes.data(), bytes.size()));
     return;
   }
 
   res->writeHeader("Transfer-Encoding", "chunked");
 
-  auto bytes = std::make_shared<std::vector<char>>(fileProvider.readAllBytes(assetPath));
+  auto bytes = std::make_shared<std::vector<char>>(fileProvider.readBytesRef(assetPath));
   auto offset = std::make_shared<std::size_t>(0U);
 
-  res->onAborted([bytes, offset] { bytes->clear(); });
+  res->onAborted([bytes, offset] {
+    bytes->clear();
+    bytes->shrink_to_fit();// Release memory immediately
+  });
 
   res->onWritable([res, bytes, offset](std::uintmax_t) mutable {
     while (*offset < bytes->size()) {

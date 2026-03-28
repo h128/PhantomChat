@@ -99,3 +99,24 @@ void to_json(nlohmann::json &j, const LeaveRoomEvent &event)
 }
 
 }// namespace phantomchat::events
+
+
+namespace phantomchat::config {
+void to_json(nlohmann::json &j, const AppSettings &settings)
+{
+  j = nlohmann::json{ { "listen_port", settings.listen_port },
+    { "ice_servers", settings.ice_servers },
+    { "ssl_certificate", settings.ssl_certificate },
+    { "ssl_certificate_key", settings.ssl_certificate_key },
+    { "gzip_compression", settings.gzip_compression } };
+}
+
+void from_json(const nlohmann::json &j, AppSettings &settings)
+{
+  settings.listen_port = j.at("listen_port").get<int>();
+  settings.ice_servers = j.at("ice_servers").get<std::vector<std::string>>();
+  settings.ssl_certificate = j.at("ssl_certificate").get<std::string>();
+  settings.ssl_certificate_key = j.at("ssl_certificate_key").get<std::string>();
+  settings.gzip_compression = j.at("gzip_compression").get<bool>();
+}
+}// namespace phantomchat::config

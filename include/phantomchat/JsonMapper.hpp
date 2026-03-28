@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
@@ -28,3 +29,9 @@ void to_json(nlohmann::json &j, const UserEnteredRoomEvent &event);
 void to_json(nlohmann::json &j, const NewMessageReceivedEvent &event);
 void to_json(nlohmann::json &j, const LeaveRoomEvent &event);
 }// namespace phantomchat::events
+
+
+namespace phantomchat::config {
+void from_json(const nlohmann::json &j, AppSettings &settings);
+void to_json(nlohmann::json &j, const AppSettings &settings);
+}// namespace phantomchat::config
