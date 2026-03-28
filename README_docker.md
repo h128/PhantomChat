@@ -47,6 +47,7 @@ You can configure and build [as directed above](#build) using these commands:
 ```bash
 /starter_project# mkdir build
 /starter_project# cmake -S . -B ./build
+/starter_project# cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Release
 /starter_project# cmake --build ./build -j
 ```
 

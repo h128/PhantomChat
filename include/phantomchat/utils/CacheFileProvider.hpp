@@ -27,6 +27,8 @@ public:
 
   std::vector<char> readAllBytes(const std::string &path) const override;
 
+  const std::vector<char> &readBytesRef(const std::string &path) const;
+
   std::uintmax_t size(const std::string &path) const override;
 
   std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;

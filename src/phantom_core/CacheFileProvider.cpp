@@ -40,7 +40,9 @@ CacheFileProvider::CacheFileProvider(std::string rootPath) : rootPath_(std::move
   }
 }
 
-std::vector<char> CacheFileProvider::readAllBytes(const std::string &path) const { return getEntry(path).bytes; }
+const std::vector<char> &CacheFileProvider::readBytesRef(const std::string &path) const { return getEntry(path).bytes; }
+
+std::vector<char> CacheFileProvider::readAllBytes(const std::string &path) const { return readBytesRef(path); }
 
 std::uintmax_t CacheFileProvider::size(const std::string &path) const { return getEntry(path).size; }
 
