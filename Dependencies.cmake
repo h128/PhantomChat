@@ -99,4 +99,12 @@ function(phantomchat_setup_dependencies)
       GIT_TAG cfebfd3da486d5a86c644c8b47067e5411c7599c
     )
   endif()
+
+  if(NOT TARGET concurrentqueue)
+    CPMAddPackage(
+      NAME concurrentqueue
+      GITHUB_REPOSITORY cameron314/concurrentqueue
+      VERSION 1.0.4
+    )
+  endif()
 endfunction()
