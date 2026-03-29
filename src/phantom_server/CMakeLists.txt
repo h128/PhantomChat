@@ -13,6 +13,7 @@ target_link_system_libraries(
           spdlog::spdlog
           nlohmann_json::nlohmann_json
           uWS
+          concurrentqueue
           )
 
 

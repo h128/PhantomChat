@@ -1,5 +1,7 @@
+#include "handlers/DocumentUploadHandler.h"
 #include "handlers/RequestHandler.h"
 #include "handlers/StaticFileHandler.h"
+#include "processors/DocumentFileUploadProcessor.h"
 #include <App.h>
 #include <fmt/core.h>
 #include <phantomchat/config/AppSettings.h>
@@ -22,13 +24,20 @@ int main()
 
   phantomchat::utils::CacheFileProvider fileProvider("assets");
 
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask> uploadTaskQueue;
+  phantomchat::processors::uploadDocumentBackgroundProcess(uploadTaskQueue);
+
   uWS::App app;
 
   auto handleStaticFileWithCache = [&fileProvider](auto *res, auto *req) {
     phantomchat::handlers::handleStaticFile(res, req, fileProvider);
   };
+  auto handleDocumentUpload = [&room_manager, &uploadTaskQueue](auto *res, auto *req) {
+    phantomchat::handlers::handleDocumentUpload(res, req, room_manager, uploadTaskQueue);
+  };
 
   app.get("/*", handleStaticFileWithCache)
+    .post("/document-upload/:filename", handleDocumentUpload)
     .ws<phantomchat::contracts::PerSocketData>("/room",
       { .open = [](auto *) { fmt::print("WebSocket connected\n"); },
         .message =
@@ -50,6 +59,8 @@ int main()
         }
       })
     .run();
+
+  phantomchat::processors::uploadProcessorRunning = false;// Signal the upload processor to stop
 
   return 0;
 }
