@@ -31,7 +31,7 @@ add_test(NAME cli.has_help COMMAND PhantomServer --help)
 add_test(NAME cli.version_matches COMMAND PhantomServer --version)
 set_tests_properties(cli.version_matches PROPERTIES PASS_REGULAR_EXPRESSION "${PROJECT_VERSION}")
 
-add_executable(tests room_manager_tests.cpp)
+add_executable(tests room_manager_tests.cpp helper_function_tests.cpp)
 target_link_libraries(
   tests
   PRIVATE phantomchat::phantomchat_warnings

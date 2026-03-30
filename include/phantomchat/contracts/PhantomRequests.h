@@ -19,7 +19,7 @@ public:
   Command command;
 
 
-  virtual void validate() const = 0;
+  virtual void validate() = 0;
 };
 
 // JoinOrCreateRoom request
@@ -32,7 +32,7 @@ public:
   std::string room_name;
   std::string public_key;
 
-  void validate() const override;
+  void validate() override;
 };
 
 // SendMessage request
@@ -43,7 +43,7 @@ public:
 
   std::string message;
 
-  void validate() const override;
+  void validate() override;
 };
 
 class PHANTOM_CORE_EXPORT LeaveRoomRequest final : public PhantomRequestBase
@@ -51,7 +51,7 @@ class PHANTOM_CORE_EXPORT LeaveRoomRequest final : public PhantomRequestBase
 public:
   LeaveRoomRequest() { command = Command::LeaveRoom; }
 
-  void validate() const override
+  void validate() override
   { /* No additional validation needed for leaving a room */
   }
 };
