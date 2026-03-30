@@ -54,5 +54,19 @@ public:
   std::string user_uuid;
 };
 
+class PHANTOM_CORE_EXPORT FileUploadedEvent final : public EventBase
+{
+public:
+  explicit FileUploadedEvent(std::string file_name_, std::string room_name_, std::string user_uuid_, bool poster_)
+    : EventBase("FileUploaded"), file_name(std::move(file_name_)), room_name(std::move(room_name_)),
+      user_uuid(std::move(user_uuid_)), poster(poster_)
+  {}
+
+  std::string file_name;
+  std::string room_name;
+  std::string user_uuid;
+  bool poster = false;// for the thumbnail
+};
+
 
 }// namespace phantomchat::events

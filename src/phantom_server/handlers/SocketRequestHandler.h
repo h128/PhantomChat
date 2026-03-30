@@ -109,6 +109,7 @@ template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_man
   PhantomRequestPtr request;
   try {
     request = from_json(msg);
+    request->validate();
 
     switch (request->command) {
     case Command::JoinOrCreateRoom:

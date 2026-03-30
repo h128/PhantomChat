@@ -23,7 +23,7 @@ std::string RoomManager::generateRoomKey()
 
 RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &args)
 {
-  std::lock_guard<std::mutex> lock(rooms_mutex);
+  std::unique_lock<std::shared_mutex> lock(rooms_mutex);
 
   auto it = rooms.find(args.room_name);
 
@@ -55,7 +55,7 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
 
 std::optional<std::reference_wrapper<const Room>> RoomManager::getRoom(const std::string &room_name) const
 {
-  std::lock_guard<std::mutex> lock(rooms_mutex);
+  std::shared_lock<std::shared_mutex> lock(rooms_mutex);
   auto it = rooms.find(room_name);
   if (it != rooms.end()) { return std::cref(it->second); }
   return {};
@@ -64,13 +64,22 @@ std::optional<std::reference_wrapper<const Room>> RoomManager::getRoom(const std
 
 bool RoomManager::roomExists(const std::string &room_name) const
 {
-  std::lock_guard<std::mutex> lock(rooms_mutex);
+  std::shared_lock<std::shared_mutex> lock(rooms_mutex);
   return rooms.find(room_name) != rooms.end();
+}
+
+bool RoomManager::isUserMemberOfRoom(const RoomArgs &args) const
+{
+  std::shared_lock<std::shared_mutex> lock(rooms_mutex);
+  auto it = rooms.find(args.room_name);
+  if (it == rooms.end()) { return false; }
+  const auto &members = it->second.members;
+  return std::find(members.begin(), members.end(), args.user_uuid) != members.end();
 }
 
 std::vector<Room> RoomManager::getAllRooms() const
 {
-  std::lock_guard<std::mutex> lock(rooms_mutex);
+  std::shared_lock<std::shared_mutex> lock(rooms_mutex);
   std::vector<Room> result;
   result.reserve(rooms.size());
   for (const auto &[_, room] : rooms) { result.push_back(room); }
@@ -79,7 +88,7 @@ std::vector<Room> RoomManager::getAllRooms() const
 
 void RoomManager::leaveRoom(const RoomArgs &args)
 {
-  std::lock_guard<std::mutex> lock(rooms_mutex);
+  std::unique_lock<std::shared_mutex> lock(rooms_mutex);
   auto it = rooms.find(args.room_name);
 
   if (it != rooms.end()) {

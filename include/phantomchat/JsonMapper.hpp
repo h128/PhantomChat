@@ -28,6 +28,7 @@ void to_json(nlohmann::json &j, const RoomCreatedEvent &event);
 void to_json(nlohmann::json &j, const UserEnteredRoomEvent &event);
 void to_json(nlohmann::json &j, const NewMessageReceivedEvent &event);
 void to_json(nlohmann::json &j, const LeaveRoomEvent &event);
+void to_json(nlohmann::json &j, const FileUploadedEvent &event);
 }// namespace phantomchat::events
 
 

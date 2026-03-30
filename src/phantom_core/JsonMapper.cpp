@@ -98,6 +98,14 @@ void to_json(nlohmann::json &j, const LeaveRoomEvent &event)
   j = nlohmann::json{ { "event_name", event.event_name }, { "user_uuid", event.user_uuid } };
 }
 
+void to_json(nlohmann::json &j, const FileUploadedEvent &event)
+{
+  j = nlohmann::json{ { "event_name", event.event_name },
+    { "file_name", event.file_name },
+    { "user_uuid", event.user_uuid },
+    { "poster", event.poster } };
+}
+
 }// namespace phantomchat::events
 
 

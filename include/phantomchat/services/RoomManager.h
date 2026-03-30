@@ -4,6 +4,7 @@
 #include <mutex>
 #include <optional>
 #include <phantomchat/phantom_core_export.hpp>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -56,12 +57,14 @@ public:
 
   bool roomExists(const std::string &room_name) const;
 
+  bool isUserMemberOfRoom(const RoomArgs &args) const;
+
   void leaveRoom(const RoomArgs &args);
 
   std::vector<Room> getAllRooms() const;
 
 private:
-  mutable std::mutex rooms_mutex;
+  mutable std::shared_mutex rooms_mutex;
   std::unordered_map<std::string, Room> rooms;
   static std::string generateRoomKey();
 };
