@@ -7,6 +7,7 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace phantomchat::services {
@@ -14,7 +15,7 @@ struct PHANTOM_CORE_EXPORT Room
 {
   std::string room_name;
   std::string room_key;
-  std::vector<std::string> members;// list of user_uuids
+  std::unordered_set<std::string> members;// list of user_uuids
   std::string created_by;// user_uuid who created the room
 };
 
@@ -25,7 +26,7 @@ public:
   {
     bool room_created = false;// true if new room was created, false if existing room
     std::string room_key;
-    std::vector<std::string> members;// list of user_uuids
+    std::unordered_set<std::string> members;// list of user_uuids
   };
 
   struct RoomArgs

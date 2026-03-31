@@ -34,23 +34,7 @@ std::string_view FileProvider::mimeType(const std::string &path) const
     return static_cast<char>(std::tolower(character));
   });
 
-  if (extension == ".html" || extension == ".htm") { return "text/html; charset=utf-8"; }
-  if (extension == ".txt") { return "text/plain; charset=utf-8"; }
-  if (extension == ".css") { return "text/css; charset=utf-8"; }
-  if (extension == ".js") { return "application/javascript; charset=utf-8"; }
-  if (extension == ".json") { return "application/json; charset=utf-8"; }
-  if (extension == ".svg") { return "image/svg+xml"; }
-  if (extension == ".png") { return "image/png"; }
-  if (extension == ".jpg" || extension == ".jpeg") { return "image/jpeg"; }
-  if (extension == ".gif") { return "image/gif"; }
-  if (extension == ".webp") { return "image/webp"; }
-  if (extension == ".ico") { return "image/x-icon"; }
-  if (extension == ".bmp") { return "image/bmp"; }
-  if (extension == ".otf") { return "font/otf"; }
-  if (extension == ".sfnt") { return "font/sfnt"; }
-  if (extension == ".ttf") { return "font/ttf"; }
-  if (extension == ".woff") { return "font/woff"; }
-  if (extension == ".woff2") { return "font/woff2"; }
+  if (const auto it = mime_types.find(extension); it != mime_types.end()) { return it->second; }
 
   return "application/octet-stream";
 }

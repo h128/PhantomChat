@@ -1,4 +1,4 @@
-#include <phantomchat/JsonMapper.hpp>
+#include <phantomchat/utils/JsonSerialization.hpp>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/utils/HelperFunctions.h>
 #include <stdexcept>
@@ -39,25 +39,25 @@ void SendMessageRequest::validate()
   if (message.size() > 1024) { throw std::invalid_argument("message exceeds maximum length of 1024"); }
 }
 
-PhantomRequestPtr from_json(std::string_view jsonString)
+PhantomRequestPtr from_json(std::string_view json_string)
 {
-  json jsonData = json::parse(jsonString);
+  json json_data = json::parse(json_string);
 
-  if (!jsonData.contains("command")) { throw std::invalid_argument("Missing 'command' field in JSON"); }
+  if (!json_data.contains("command")) { throw std::invalid_argument("Missing 'command' field in JSON"); }
 
-  auto cmd = static_cast<Command>(jsonData["command"]);
+  auto cmd = static_cast<Command>(json_data["command"]);
 
   switch (cmd) {
   case Command::JoinOrCreateRoom: {
-    auto request = std::make_unique<JoinOrCreateRoomRequest>(jsonData.get<JoinOrCreateRoomRequest>());
+    auto request = std::make_unique<JoinOrCreateRoomRequest>(json_data.get<JoinOrCreateRoomRequest>());
     return request;
   }
   case Command::SendMessage: {
-    auto request = std::make_unique<SendMessageRequest>(jsonData.get<SendMessageRequest>());
+    auto request = std::make_unique<SendMessageRequest>(json_data.get<SendMessageRequest>());
     return request;
   }
   case Command::LeaveRoom: {
-    auto request = std::make_unique<LeaveRoomRequest>(jsonData.get<LeaveRoomRequest>());
+    auto request = std::make_unique<LeaveRoomRequest>(json_data.get<LeaveRoomRequest>());
     return request;
   }
   default:

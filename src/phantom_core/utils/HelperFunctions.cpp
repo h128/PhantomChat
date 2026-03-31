@@ -23,12 +23,12 @@ std::string url_decode(std::string_view sv)
         && std::isxdigit(static_cast<unsigned char>(sv[i + 2]))) {
       const auto hi = sv[i + 1];
       const auto lo = sv[i + 2];
-      auto hexVal = [](char c) -> int {
+      auto hex_val = [](char c) -> int {
         if (c >= '0' && c <= '9') return c - '0';
         if (c >= 'a' && c <= 'f') return c - 'a' + 10;
         return c - 'A' + 10;
       };
-      const char decoded = static_cast<char>(hexVal(hi) << 4 | hexVal(lo));
+      const char decoded = static_cast<char>(hex_val(hi) << 4 | hex_val(lo));
       if (decoded == '\0') { return {}; }// Reject null-byte injection
       result += decoded;
       i += 2;
