@@ -1,5 +1,5 @@
 #include "phantomchat/config/AppSettings.h"
-#include <phantomchat/JsonMapper.hpp>
+#include <phantomchat/utils/JsonSerialization.hpp>
 
 #include <fstream>
 #include <nlohmann/json.hpp>

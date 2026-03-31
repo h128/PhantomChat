@@ -2,6 +2,7 @@
 
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace phantomchat::contracts {
@@ -28,7 +29,7 @@ public:
   std::string room_name;
   std::string room_key;
   bool room_created = false;// true if room was newly created, false if existing
-  std::vector<std::string> members;// list of user_uuids currently in the room
+  std::unordered_set<std::string> members;// list of user_uuids currently in the room
 };
 
 class PHANTOM_CORE_EXPORT SendMessageResponse final : public PhantomResponseBase

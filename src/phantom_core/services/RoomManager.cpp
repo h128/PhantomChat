@@ -1,24 +1,20 @@
 #include <array>
-#include <iomanip>
 #include <phantomchat/services/RoomManager.h>
 #include <sodium.h>
-#include <sstream>
 
 namespace phantomchat::services {
 
 std::string RoomManager::generateRoomKey()
 {
-  constexpr int ROOM_KEY_SIZE = 32;
+  constexpr int room_key_size = 32;
 
-  std::array<unsigned char, ROOM_KEY_SIZE> key{};
+  std::array<unsigned char, room_key_size> key{};
   randombytes_buf(key.data(), key.size());
 
-  std::ostringstream oss;
-  oss << std::hex << std::setfill('0');
+  std::array<char, room_key_size * 2 + 1> hex{};
+  sodium_bin2hex(hex.data(), hex.size(), key.data(), key.size());
 
-  for (const auto byte : key) { oss << std::setw(2) << static_cast<int>(byte); }
-
-  return oss.str();
+  return std::string(hex.data(), hex.size() - 1);
 }
 
 RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &args)
@@ -31,11 +27,7 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
     // Room exists, add user to it
     auto &room = it->second;
     auto &members = room.members;
-
-    // Check if user is already in the room
-    if (std::find(members.begin(), members.end(), args.user_uuid) == members.end()) {
-      members.push_back(args.user_uuid);
-    }
+    members.insert(args.user_uuid);
 
     return { .room_created = false, .room_key = room.room_key, .members = members };
   } else {
@@ -94,7 +86,7 @@ void RoomManager::leaveRoom(const RoomArgs &args)
   if (it != rooms.end()) {
 
     auto &members = it->second.members;
-    members.erase(std::remove(members.begin(), members.end(), args.user_uuid), members.end());
+    members.erase(args.user_uuid);
 
     // If room is empty after user leaves, remove the room
     if (members.empty()) { rooms.erase(it); }

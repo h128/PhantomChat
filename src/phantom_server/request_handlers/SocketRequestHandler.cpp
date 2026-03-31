@@ -1,13 +1,8 @@
-#pragma once
+#include "../headers/SocketRequestHandler.h"
 
-#include <App.h>
-#include <memory>
-#include <phantomchat/JsonMapper.hpp>
-#include <phantomchat/contracts/PerSocketData.h>
-#include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
-#include <phantomchat/services/RoomManager.h>
+#include <phantomchat/utils/JsonSerialization.hpp>
 
 namespace phantomchat::handlers {
 
@@ -15,14 +10,15 @@ using namespace phantomchat::services;
 using namespace phantomchat::contracts;
 using namespace phantomchat::events;
 
-template<typename WS_TYPE, typename EventType>
-void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
-{
-  json j = event;
-  const std::string payload = j.dump();
-  ws->publish(topic, payload, uWS::OpCode::TEXT);
-}
-
+namespace {
+  template<typename WS_TYPE, typename EventType>
+  void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
+  {
+    json j = event;
+    const std::string payload = j.dump();
+    ws->publish(topic, payload, uWS::OpCode::TEXT);
+  }
+}// anonymous namespace
 
 template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessageRequest *request)
 {
@@ -51,19 +47,18 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, APP_TYPE *app)
 
     room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
-    LeaveRoomEvent leaveRoomEvent(user_uuid);
+    LeaveRoomEvent leave_room_event(user_uuid);
 
     if (app != nullptr) {
       // underlying WebSocket connection closed, inform other clients
-      app->publish(topic, json(leaveRoomEvent).dump(), uWS::OpCode::TEXT);
+      app->publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
     } else /* client requested to leave the room*/ {
-      dispatch_event(ws, leaveRoomEvent, topic);
+      dispatch_event(ws, leave_room_event, topic);
     }
 
     socket_data->clear();
   }
 }
-
 
 template<typename WS_TYPE>
 void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOrCreateRoomRequest *request)
@@ -95,14 +90,12 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   dispatch_event(ws, UserEnteredRoomEvent(request->room_name, request->user_uuid), topic);
 }
 
-
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid)
 {
   ErrorResponse error(message);
   error.request_uuid = request_uuid;
   ws->send(json(error).dump(), uWS::OpCode::TEXT);
 }
-
 
 template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_manager, std::string_view msg)
 {
@@ -129,5 +122,21 @@ template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_man
   }
 }
 
-
 }// namespace phantomchat::handlers
+
+using WsType = uWS::WebSocket<false, true, phantomchat::contracts::PerSocketData>;
+
+template void phantomchat::handlers::handleSendMessage<WsType>(WsType *,
+  const phantomchat::contracts::SendMessageRequest *);
+
+template void
+  phantomchat::handlers::handleLeaveRoom<WsType, uWS::App>(WsType *, phantomchat::services::RoomManager &, uWS::App *);
+
+template void phantomchat::handlers::handleJoinOrCreateRoom<WsType>(WsType *,
+  phantomchat::services::RoomManager &,
+  const phantomchat::contracts::JoinOrCreateRoomRequest *);
+
+template void phantomchat::handlers::sendError<WsType>(WsType *, const std::string &, const std::string &);
+
+template void
+  phantomchat::handlers::handleMessage<WsType>(WsType *, phantomchat::services::RoomManager &, std::string_view);

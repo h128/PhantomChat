@@ -15,28 +15,28 @@ std::string normalizePathKey(const std::string &path)
 
 namespace phantomchat::utils {
 
-CacheFileProvider::CacheFileProvider(std::string rootPath) : rootPath_(std::move(rootPath))
+CacheFileProvider::CacheFileProvider(std::string root_path) : root_path_(std::move(root_path))
 {
-  phantomchat::utils::FileProvider fileProvider;
+  phantomchat::utils::FileProvider file_provider;
 
-  const auto root = std::filesystem::path(rootPath_);
+  const auto root = std::filesystem::path(root_path_);
   if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
-    throw std::invalid_argument("Invalid root directory for cache file provider: " + rootPath_);
+    throw std::invalid_argument("Invalid root directory for cache file provider: " + root_path_);
   }
 
   for (const auto &entry : std::filesystem::recursive_directory_iterator(root)) {
     if (!entry.is_regular_file()) { continue; }
 
-    const auto absolutePath = entry.path();
-    const auto relativePath = std::filesystem::relative(absolutePath, root).generic_string();
-    const auto absolutePathString = absolutePath.string();
+    const auto absolute_path = entry.path();
+    const auto relative_path = std::filesystem::relative(absolute_path, root).generic_string();
+    const auto absolute_path_string = absolute_path.string();
 
-    CachedFileEntry cachedEntry;
-    cachedEntry.lastWriteTime = fileProvider.lastWriteTime(absolutePathString);
-    cachedEntry.bytes = fileProvider.readAllBytes(absolutePathString);
-    cachedEntry.size = cachedEntry.bytes.size();
-    cachedEntry.mimeType = fileProvider.mimeType(absolutePathString);
-    cache_.emplace(relativePath, std::move(cachedEntry));
+    CachedFileEntry cached_entry;
+    cached_entry.last_write_time = file_provider.lastWriteTime(absolute_path_string);
+    cached_entry.bytes = file_provider.readAllBytes(absolute_path_string);
+    cached_entry.size = cached_entry.bytes.size();
+    cached_entry.mime_type = file_provider.mimeType(absolute_path_string);
+    cache_.emplace(relative_path, std::move(cached_entry));
   }
 }
 
@@ -48,7 +48,7 @@ std::uintmax_t CacheFileProvider::size(const std::string &path) const { return g
 
 std::filesystem::file_time_type CacheFileProvider::lastWriteTime(const std::string &path) const
 {
-  return getEntry(path).lastWriteTime;
+  return getEntry(path).last_write_time;
 }
 
 const CachedFileEntry &CacheFileProvider::getEntry(const std::string &path) const
@@ -58,7 +58,7 @@ const CachedFileEntry &CacheFileProvider::getEntry(const std::string &path) cons
   return it->second;
 }
 
-std::string_view CacheFileProvider::mimeType(const std::string &path) const { return getEntry(path).mimeType; }
+std::string_view CacheFileProvider::mimeType(const std::string &path) const { return getEntry(path).mime_type; }
 
 bool CacheFileProvider::exists(const std::string &path) const noexcept { return findFile(path) != cache_.end(); }
 

@@ -1,4 +1,9 @@
-add_executable(PhantomServer main.cpp)
+add_executable(PhantomServer
+  main.cpp
+  processors/DocumentProcessor.cpp
+  request_handlers/StaticFileHandler.cpp
+  request_handlers/DocumentHandler.cpp
+  request_handlers/SocketRequestHandler.cpp)
 
 target_link_libraries(
   PhantomServer

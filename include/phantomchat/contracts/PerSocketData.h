@@ -7,11 +7,11 @@ struct PerSocketData
   std::string room_name;
   std::string public_key;
 
-  void assign(const std::string &user_uuid_, const std::string &room_name_, const std::string &public_key_)
+  void assign(std::string user_uuid_, std::string room_name_, std::string public_key_)
   {
-    user_uuid = user_uuid_;
-    room_name = room_name_;
-    public_key = public_key_;
+    user_uuid = std::move(user_uuid_);
+    room_name = std::move(room_name_);
+    public_key = std::move(public_key_);
   }
 
   void clear()

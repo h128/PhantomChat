@@ -1,10 +1,14 @@
 include(GenerateExportHeader)
 
 
-add_library(phantom_core CacheFileProvider.cpp FileProvider.cpp PhantomRequest.cpp RoomManager.cpp
- JsonMapper.cpp
- AppSettings.cpp
- HelperFunctions.cpp)
+add_library(phantom_core
+  utils/JsonSerialization.cpp
+  config/AppSettings.cpp
+  contracts/PhantomRequest.cpp
+  services/RoomManager.cpp
+  utils/CacheFileProvider.cpp
+  utils/FileProvider.cpp
+  utils/HelperFunctions.cpp)
 
 
 
