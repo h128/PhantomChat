@@ -1,6 +1,6 @@
-#include <phantomchat/utils/JsonSerialization.hpp>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/utils/HelperFunctions.h>
+#include <phantomchat/utils/JsonSerialization.hpp>
 #include <stdexcept>
 
 namespace phantomchat::contracts {
@@ -39,6 +39,26 @@ void SendMessageRequest::validate()
   if (message.size() > 1024) { throw std::invalid_argument("message exceeds maximum length of 1024"); }
 }
 
+void SignalCallRequest::validate()
+{
+  // OFFER and ANSWER require a SessionDescription
+  if (action == SignalCallAction::OFFER || action == SignalCallAction::ANSWER) {
+    if (!std::holds_alternative<SessionDescription>(data)) {
+      throw std::invalid_argument("OFFER/ANSWER actions require a SessionDescription");
+    }
+    const auto &sd = std::get<SessionDescription>(data);
+    if (sd.sdp.empty()) { throw std::invalid_argument("SDP cannot be empty"); }
+    if (sd.sdp.size() > 65536) { throw std::invalid_argument("SDP exceeds maximum length"); }
+  }
+
+  // CANDIDATE requires an IceCandidate
+  if (action == SignalCallAction::CANDIDATE) {
+    if (!std::holds_alternative<IceCandidate>(data)) {
+      throw std::invalid_argument("CANDIDATE action requires an IceCandidate");
+    }
+  }
+}
+
 PhantomRequestPtr from_json(std::string_view json_string)
 {
   json json_data = json::parse(json_string);
@@ -54,6 +74,10 @@ PhantomRequestPtr from_json(std::string_view json_string)
   }
   case Command::SendMessage: {
     auto request = std::make_unique<SendMessageRequest>(json_data.get<SendMessageRequest>());
+    return request;
+  }
+  case Command::SignalCall: {
+    auto request = std::make_unique<SignalCallRequest>(json_data.get<SignalCallRequest>());
     return request;
   }
   case Command::LeaveRoom: {

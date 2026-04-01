@@ -38,11 +38,22 @@ public:
   SendMessageResponse() { status = ResponseStatus::Success; }
 };
 
+class PHANTOM_CORE_EXPORT GeneralResponse final : public PhantomResponseBase
+{
+public:
+  explicit GeneralResponse(const std::string &message_ = "", const std::string &request_uuid_ = "")
+  {
+    status = ResponseStatus::Success;
+    message = message_;
+    request_uuid = request_uuid_;
+  }
+};// namespace phantomchat::contracts
+
 // Error response
 class PHANTOM_CORE_EXPORT ErrorResponse final : public PhantomResponseBase
 {
 public:
-  ErrorResponse(const std::string &err_message = "")
+  explicit ErrorResponse(const std::string &err_message = "")
   {
     status = ResponseStatus::Error;
     message = err_message;

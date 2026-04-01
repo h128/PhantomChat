@@ -20,6 +20,8 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
   const phantomchat::contracts::JoinOrCreateRoomRequest *request);
 
+template<typename WS_TYPE> void handleSignalCall(WS_TYPE *ws, const phantomchat::contracts::SignalCallRequest *request);
+
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid);
 
 template<typename WS_TYPE>

@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
 #include <string_view>
@@ -66,6 +67,21 @@ public:
   std::string room_name;
   std::string user_uuid;
   bool poster = false;// for the thumbnail
+};
+
+class PHANTOM_CORE_EXPORT SignalCallRelayEvent final : public EventBase
+{
+public:
+  explicit SignalCallRelayEvent(contracts::SignalCallAction action_,
+    std::string sender_uuid_,
+    contracts::SignalingData signaling_data_)
+    : EventBase("SignalCallRelay"), action(action_), sender_uuid(std::move(sender_uuid_)),
+      signaling_data(std::move(signaling_data_))
+  {}
+
+  contracts::SignalCallAction action;
+  std::string sender_uuid;
+  contracts::SignalingData signaling_data;
 };
 
 

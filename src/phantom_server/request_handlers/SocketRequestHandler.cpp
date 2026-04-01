@@ -54,6 +54,8 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, APP_TYPE *app)
       app->publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
     } else /* client requested to leave the room*/ {
       dispatch_event(ws, leave_room_event, topic);
+      ws->unsubscribe(topic);
+      ws->send(json(GeneralResponse{ "Left room " + topic }).dump(), uWS::OpCode::TEXT);
     }
 
     socket_data->clear();
@@ -64,6 +66,11 @@ template<typename WS_TYPE>
 void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOrCreateRoomRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+
+  if (!socket_data->room_name.empty() || !socket_data->user_uuid.empty()) {
+    throw std::invalid_argument(
+      "The user is already in another room; they should leave the current room before creating or joining a new one");
+  }
 
   auto result = room_manager.joinOrCreateRoom({ .room_name = request->room_name, .user_uuid = request->user_uuid });
 
@@ -90,6 +97,22 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   dispatch_event(ws, UserEnteredRoomEvent(request->room_name, request->user_uuid), topic);
 }
 
+template<typename WS_TYPE> void handleSignalCall(WS_TYPE *ws, const SignalCallRequest *request)
+{
+  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+  if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
+    throw std::invalid_argument("User not in a room");
+  }
+
+  const std::string topic = socket_data->room_name;
+  const std::string sender_uuid = socket_data->user_uuid;
+
+  GeneralResponse resp("Signal call dispatched successfully", request->request_uuid);
+  ws->send(json(resp).dump(), uWS::OpCode::TEXT);
+
+  dispatch_event(ws, SignalCallRelayEvent(request->action, sender_uuid, request->data), topic);
+}
+
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid)
 {
   ErrorResponse error(message);
@@ -110,6 +133,9 @@ template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_man
       break;
     case Command::SendMessage:
       handleSendMessage(ws, dynamic_cast<SendMessageRequest *>(request.get()));
+      break;
+    case Command::SignalCall:
+      handleSignalCall(ws, dynamic_cast<SignalCallRequest *>(request.get()));
       break;
     case Command::LeaveRoom:
       handleLeaveRoom(ws, room_manager, static_cast<uWS::App *>(nullptr));
@@ -137,6 +163,9 @@ template void phantomchat::handlers::handleJoinOrCreateRoom<WsType>(WsType *,
   const phantomchat::contracts::JoinOrCreateRoomRequest *);
 
 template void phantomchat::handlers::sendError<WsType>(WsType *, const std::string &, const std::string &);
+
+template void phantomchat::handlers::handleSignalCall<WsType>(WsType *,
+  const phantomchat::contracts::SignalCallRequest *);
 
 template void
   phantomchat::handlers::handleMessage<WsType>(WsType *, phantomchat::services::RoomManager &, std::string_view);
