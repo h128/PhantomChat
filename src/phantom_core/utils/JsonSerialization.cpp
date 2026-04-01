@@ -69,6 +69,81 @@ void to_json(nlohmann::json &j, const ErrorResponse &response)
     { "status", static_cast<int>(response.status) },
     { "message", response.message } };
 }
+void to_json(nlohmann::json &j, const GeneralResponse &response)
+{
+  j = nlohmann::json{ { "request_uuid", response.request_uuid },
+    { "status", static_cast<int>(response.status) },
+    { "message", response.message } };
+}
+
+void to_json(nlohmann::json &j, const SessionDescription &sd)
+{
+  j = nlohmann::json{ { "type", sd.type }, { "sdp", sd.sdp } };
+}
+
+void from_json(const nlohmann::json &j, SessionDescription &sd)
+{
+  sd.type = j.at("type").get<std::string>();
+  sd.sdp = j.at("sdp").get<std::string>();
+}
+
+void to_json(nlohmann::json &j, const IceCandidate &ic)
+{
+  j = nlohmann::json{ { "candidate", ic.candidate }, { "sdpMid", ic.sdpMid }, { "sdpMLineIndex", ic.sdpMLineIndex } };
+  if (ic.usernameFragment.has_value()) { j["usernameFragment"] = ic.usernameFragment.value(); }
+}
+
+void from_json(const nlohmann::json &j, IceCandidate &ic)
+{
+  ic.candidate = j.at("candidate").get<std::string>();
+  ic.sdpMid = j.at("sdpMid").get<std::string>();
+  ic.sdpMLineIndex = j.at("sdpMLineIndex").get<int>();
+  if (j.contains("usernameFragment") && !j["usernameFragment"].is_null()) {
+    ic.usernameFragment = j["usernameFragment"].get<std::string>();
+  }
+}
+
+void to_json(nlohmann::json &j, const SignalCallRequest &request)
+{
+  j = nlohmann::json{ { "request_uuid", request.request_uuid },
+    { "command", static_cast<int>(request.command) },
+    { "action", static_cast<int>(request.action) } };
+
+  std::visit(
+    [&j](auto &&arg) {
+      using T = std::decay_t<decltype(arg)>;
+      if constexpr (std::is_same_v<T, SessionDescription>) {
+        j["data"] = arg;
+      } else if constexpr (std::is_same_v<T, IceCandidate>) {
+        j["data"] = arg;
+      } else {
+        j["data"] = nullptr;
+      }
+    },
+    request.data);
+}
+
+void from_json(const nlohmann::json &j, SignalCallRequest &request)
+{
+  request.request_uuid = j.at("request_uuid").get<std::string>();
+  request.command = static_cast<Command>(j.at("command").get<int>());
+  request.action = static_cast<SignalCallAction>(j.at("action").get<int>());
+
+  if (j.contains("data") && !j["data"].is_null()) {
+    switch (request.action) {
+    case SignalCallAction::OFFER:
+    case SignalCallAction::ANSWER:
+      request.data = j["data"].get<SessionDescription>();
+      break;
+    case SignalCallAction::CANDIDATE:
+      request.data = j["data"].get<IceCandidate>();
+      break;
+    default:
+      request.data = std::monostate{};
+      break;
+    }
+  }
+}
 
 }// namespace phantomchat::contracts
 
@@ -104,6 +179,28 @@ void to_json(nlohmann::json &j, const FileUploadedEvent &event)
     { "file_name", event.file_name },
     { "user_uuid", event.user_uuid },
     { "poster", event.poster } };
+}
+
+void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
+{
+  nlohmann::json data_json;
+  std::visit(
+    [&data_json](auto &&arg) {
+      using T = std::decay_t<decltype(arg)>;
+      if constexpr (std::is_same_v<T, contracts::SessionDescription>) {
+        data_json = arg;
+      } else if constexpr (std::is_same_v<T, contracts::IceCandidate>) {
+        data_json = arg;
+      } else {
+        data_json = nullptr;
+      }
+    },
+    event.signaling_data);
+
+  j = nlohmann::json{ { "event_name", event.event_name },
+    { "action", static_cast<int>(event.action) },
+    { "sender_uuid", event.sender_uuid },
+    { "data", data_json } };
 }
 
 }// namespace phantomchat::events

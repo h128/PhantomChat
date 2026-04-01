@@ -66,7 +66,7 @@ bool RoomManager::isUserMemberOfRoom(const RoomArgs &args) const
   auto it = rooms.find(args.room_name);
   if (it == rooms.end()) { return false; }
   const auto &members = it->second.members;
-  return std::find(members.begin(), members.end(), args.user_uuid) != members.end();
+  return members.contains(args.user_uuid);
 }
 
 std::vector<Room> RoomManager::getAllRooms() const

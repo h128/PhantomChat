@@ -1,13 +1,22 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
 #include <string_view>
+#include <variant>
 
 namespace phantomchat::contracts {
 
-enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3 };
+enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3, SignalCall = 4 };
+enum class SignalCallAction {
+  OFFER = 1,// WebRTC SDP Offer
+  ANSWER = 2,// WebRTC SDP Answer (The technical 'Accept')
+  REJECT = 3,// User declined the call
+  CANDIDATE = 4,// ICE Network path
+  HANGUP = 5// End the call
+};
 
 // Base request class
 class PHANTOM_CORE_EXPORT PhantomRequestBase
@@ -55,6 +64,34 @@ public:
   { /* No additional validation needed for leaving a room */
   }
 };
+
+
+struct SessionDescription
+{
+  std::string type;// "offer" or "answer"
+  std::string sdp;// The actual SDP string
+};
+
+// Structure for ICE Candidates
+struct IceCandidate
+{
+  std::string candidate;
+  std::string sdpMid;
+  int sdpMLineIndex;
+  std::optional<std::string> usernameFragment;
+};
+
+using SignalingData = std::variant<std::monostate, SessionDescription, IceCandidate>;
+struct SignalCallRequest final : public PhantomRequestBase
+{
+  SignalCallRequest() { command = Command::SignalCall; }
+
+  SignalCallAction action;// The Enum we created earlier
+  SignalingData data;// The structured data field
+
+  void validate() override;
+};
+
 
 using PhantomRequestPtr = std::unique_ptr<PhantomRequestBase>;
 
