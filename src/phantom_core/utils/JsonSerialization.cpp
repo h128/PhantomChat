@@ -216,7 +216,8 @@ void to_json(nlohmann::json &j, const AppSettings &settings)
     { "gzip_compression", settings.gzip_compression },
     { "worker_threads", settings.worker_threads },
     { "web_root_path", settings.web_root_path },
-    { "upload_path", settings.upload_path } };
+    { "upload_path", settings.upload_path },
+    { "cors_allowed_origins", settings.cors_allowed_origins } };
 }
 
 void from_json(const nlohmann::json &j, AppSettings &settings)
@@ -229,5 +230,6 @@ void from_json(const nlohmann::json &j, AppSettings &settings)
   settings.worker_threads = j.at("worker_threads").get<int>();
   settings.web_root_path = j.at("web_root_path").get<std::string>();
   settings.upload_path = j.at("upload_path").get<std::string>();
+  settings.cors_allowed_origins = j.at("cors_allowed_origins").get<std::vector<std::string>>();
 }
 }// namespace phantomchat::config
