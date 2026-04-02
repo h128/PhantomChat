@@ -62,6 +62,9 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
     asset_path = std::string(url);
   }
 
+  // SPA fallback: if the path has no file extension, serve index.html
+  if (!file_provider.exists(asset_path) && asset_path.find('.') == std::string::npos) { asset_path = "index.html"; }
+
   if (!file_provider.exists(asset_path)) {
     res->writeStatus("404 Not Found");
     phantomchat::cors::writeHeaders(res, req);
