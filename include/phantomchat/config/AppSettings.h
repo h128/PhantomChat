@@ -12,6 +12,7 @@ struct AppSettings
   int worker_threads = 2;
   std::string web_root_path;
   std::string upload_path;
+  std::vector<std::string> cors_allowed_origins = { "*" };
 
   void load_from_file(const std::string &filename);
 };

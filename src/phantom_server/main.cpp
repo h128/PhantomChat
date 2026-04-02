@@ -1,6 +1,7 @@
 #include "headers/DocumentHandler.h"
 #include "headers/SocketRequestHandler.h"
 #include "headers/StaticFileHandler.h"
+#include "headers/CorsHelper.h"
 #include <App.h>
 #include <fmt/core.h>
 #include <fmt/std.h>
@@ -30,8 +31,15 @@ void setup_rest(APP_TYPE &app,
   auto handle_download_document = [&download_task_queue](auto *res, auto *req) {
     phantomchat::handlers::handleDownloadDocument(res, req, download_task_queue);
   };
+  auto handle_options = [](auto *res, auto *req) {
+    auto origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
+    res->writeStatus("204 No Content");
+    phantomchat::cors::writePreflightHeaders(res, origin);
+    res->end();
+  };
 
-  app.get("/download-document/:room/:filename", handle_download_document)
+  app.options("/*", handle_options)
+    .get("/download-document/:room/:filename", handle_download_document)
     .post("/upload-document/:filename", handle_upload_document)
     .get("/*", handle_static_file_with_cache);
 }
@@ -69,6 +77,7 @@ int main()
   phantomchat::config::AppSettings settings;
   settings.load_from_file("appsettings.json");
   UploadTask::upload_root_path = settings.upload_path;
+  phantomchat::cors::allowed_origins = settings.cors_allowed_origins;
 
   auto &room_manager = phantomchat::services::RoomManager::getInstance();
 

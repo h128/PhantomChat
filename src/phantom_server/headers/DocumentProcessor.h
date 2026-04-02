@@ -14,14 +14,19 @@ struct FileContext
   std::string filename;
   std::string room_name;
   std::string user_uuid;
+  std::string cors_origin;
 
   std::fstream file_stream;
   bool is_poster = false;
   std::atomic<bool> aborted{ false };
 
-  FileContext(std::string filename_, std::string room_name_, std::string user_uuid_, bool is_poster_)
+  FileContext(std::string filename_,
+    std::string room_name_,
+    std::string user_uuid_,
+    bool is_poster_,
+    std::string cors_origin_ = {})
     : filename(std::move(filename_)), room_name(std::move(room_name_)), user_uuid(std::move(user_uuid_)),
-      is_poster(is_poster_)
+      cors_origin(std::move(cors_origin_)), is_poster(is_poster_)
   {}
 };
 

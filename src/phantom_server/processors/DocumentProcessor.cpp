@@ -1,4 +1,5 @@
 #include "../headers/DocumentProcessor.h"
+#include "../headers/CorsHelper.h"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -40,8 +41,11 @@ std::jthread uploadDocumentBackgroundProcess(APP_TYPE *app, moodycamel::Blocking
 
       if (context_ptr->aborted) continue;
 
-      // Defer chunked response to the event loop
-      app->getLoop()->defer([res = task.res] { res->writeStatus("200 OK")->end("File uploaded successfully"); });
+      app->getLoop()->defer([res = task.res, cors_origin = context_ptr->cors_origin] {
+        res->writeStatus("200 OK");
+        phantomchat::cors::writeHeaders(res, cors_origin);
+        res->end("File uploaded successfully");
+      });
 
       std::string just_filename = std::filesystem::path(context_ptr->filename).filename().string();
 
@@ -74,7 +78,11 @@ std::jthread downloadDocumentBackgroundProcess(APP_TYPE *app,
       if (!ifs) {
         app->getLoop()->defer([res = task.res, ctx = task.file_context]() {
           auto ptr = ctx.lock();
-          if (ptr && !ptr->aborted) { res->writeStatus("404 Not Found")->end("File not found"); }
+          if (ptr && !ptr->aborted) {
+            res->writeStatus("404 Not Found");
+            phantomchat::cors::writeHeaders(res, ptr->cors_origin);
+            res->end("File not found");
+          }
         });
         continue;
       }
@@ -91,50 +99,51 @@ std::jthread downloadDocumentBackgroundProcess(APP_TYPE *app,
       phantomchat::utils::FileProvider file_provider;
       std::string content_type(file_provider.mimeType(context_ptr->filename));
 
-      // 2. Defer chunked response to the event loop
-      app->getLoop()->defer([res = task.res, bytes, just_filename, content_type]() {
-        res->writeStatus("200 OK");
-        res->writeHeader("Content-Type", content_type);
-        res->writeHeader("Content-Disposition", "attachment; filename=\"" + just_filename + "\"");
-        res->writeHeader("Transfer-Encoding", "chunked");
+      app->getLoop()->defer(
+        [res = task.res, bytes, just_filename, content_type, cors_origin = context_ptr->cors_origin]() {
+          res->writeStatus("200 OK");
+          phantomchat::cors::writeHeaders(res, cors_origin);
+          res->writeHeader("Content-Type", content_type);
+          res->writeHeader("Content-Disposition", "attachment; filename=\"" + just_filename + "\"");
+          res->writeHeader("Transfer-Encoding", "chunked");
 
-        auto offset = std::make_shared<std::size_t>(0U);
-        auto finished = std::make_shared<bool>(false);
+          auto offset = std::make_shared<std::size_t>(0U);
+          auto finished = std::make_shared<bool>(false);
 
-        res->onAborted([bytes, finished]() {
-          *finished = true;
-          bytes->clear();
-          bytes->shrink_to_fit();
-        });
+          res->onAborted([bytes, finished]() {
+            *finished = true;
+            bytes->clear();
+            bytes->shrink_to_fit();
+          });
 
-        res->onWritable([res, bytes, offset, finished](std::uintmax_t) mutable {
-          if (*finished) { return false; }
+          res->onWritable([res, bytes, offset, finished](std::uintmax_t) mutable {
+            if (*finished) { return false; }
+            while (*offset < bytes->size()) {
+              const auto remaining = bytes->size() - *offset;
+              const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
+              const auto ok = res->write(std::string_view(bytes->data() + *offset, chunk_size));
+              *offset += chunk_size;
+              if (!ok) { return true; }
+            }
+            *finished = true;
+            res->end();
+            return false;// Stop writable events once done
+          });
+
+          // Initial write attempt
           while (*offset < bytes->size()) {
             const auto remaining = bytes->size() - *offset;
             const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
             const auto ok = res->write(std::string_view(bytes->data() + *offset, chunk_size));
             *offset += chunk_size;
-            if (!ok) { return true; }
+            // If write returns false, wait for onWritable to continue sending(backpressure mode is active)
+            if (!ok) { break; }
           }
-          *finished = true;
-          res->end();
-          return false;// Stop writable events once done
+          if (*offset >= bytes->size() && !*finished) {
+            *finished = true;
+            res->end();
+          }
         });
-
-        // Initial write attempt
-        while (*offset < bytes->size()) {
-          const auto remaining = bytes->size() - *offset;
-          const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
-          const auto ok = res->write(std::string_view(bytes->data() + *offset, chunk_size));
-          *offset += chunk_size;
-          // If write returns false, wait for onWritable to continue sending(backpressure mode is active)
-          if (!ok) { break; }
-        }
-        if (*offset >= bytes->size() && !*finished) {
-          *finished = true;
-          res->end();
-        }
-      });
     }
   };
 
