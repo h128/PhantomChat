@@ -67,10 +67,15 @@ function(phantomchat_setup_dependencies)
 
     message(STATUS "uSockets source dir: ${uSockets_content_SOURCE_DIR}")
 
-    file(GLOB_RECURSE uSocketsSources ${uSockets_content_SOURCE_DIR}/src/*.c)
+    file(GLOB_RECURSE uSocketsSources ${uSockets_content_SOURCE_DIR}/src/*.c ${uSockets_content_SOURCE_DIR}/src/*.cpp)
     add_library(uSockets STATIC ${uSocketsSources})
     target_include_directories(uSockets PUBLIC ${uSockets_content_SOURCE_DIR}/src)
-    target_compile_definitions(uSockets PRIVATE LIBUS_NO_SSL) # Disable SSL if not needed
+
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
+    find_package(OpenSSL REQUIRED)
+    find_package(Threads REQUIRED)
+    target_compile_definitions(uSockets PRIVATE LIBUS_USE_OPENSSL)
+    target_link_libraries(uSockets PRIVATE OpenSSL::SSL OpenSSL::Crypto ${CMAKE_DL_LIBS} Threads::Threads)
   endif()
 
   if(NOT TARGET uWS)

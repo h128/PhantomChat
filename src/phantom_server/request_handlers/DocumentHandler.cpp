@@ -13,11 +13,11 @@ using namespace phantomchat::processors;
 using namespace phantomchat::services;
 using namespace phantomchat::utils;
 
-template<typename ResponseType, typename RequestType>
-void handleUploadDocument(ResponseType *res,
-  RequestType *req,
+template<bool SSL>
+void handleUploadDocument(uWS::HttpResponse<SSL> *res,
+  uWS::HttpRequest *req,
   RoomManager &room_manager,
-  moodycamel::BlockingConcurrentQueue<UploadTask> &task_queue)
+  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
   std::string raw_name = url_decode(req->getParameter("filename"));
@@ -57,7 +57,7 @@ void handleUploadDocument(ResponseType *res,
   }
 
   // 4. Prepare for file upload
-  auto upload_path = std::filesystem::path(UploadTask::upload_root_path) / room_name / safe_file_name;
+  auto upload_path = std::filesystem::path(upload_root_path) / room_name / safe_file_name;
   std::filesystem::create_directories(upload_path.parent_path());
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
@@ -82,10 +82,10 @@ void handleUploadDocument(ResponseType *res,
   });
 }
 
-template<typename ResponseType, typename RequestType>
-void handleDownloadDocument(ResponseType *res,
-  RequestType *req,
-  moodycamel::BlockingConcurrentQueue<DownloadTask> &task_queue)
+template<bool SSL>
+void handleDownloadDocument(uWS::HttpResponse<SSL> *res,
+  uWS::HttpRequest *req,
+  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
   std::string raw_name = url_decode(req->getParameter("filename"));
@@ -109,7 +109,7 @@ void handleDownloadDocument(ResponseType *res,
   }
 
   // 3. Prepare for file download
-  auto download_path = std::filesystem::path(UploadTask::upload_root_path) / safe_room_name / safe_file_name;
+  auto download_path = std::filesystem::path(upload_root_path) / safe_room_name / safe_file_name;
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
   auto file_context =
@@ -125,13 +125,20 @@ void handleDownloadDocument(ResponseType *res,
 
 }// namespace phantomchat::handlers
 
-template void phantomchat::handlers::handleUploadDocument<uWS::HttpResponse<false>, uWS::HttpRequest>(
-  uWS::HttpResponse<false> *,
+template void phantomchat::handlers::handleUploadDocument<false>(uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
   phantomchat::services::RoomManager &,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
 
-template void phantomchat::handlers::handleDownloadDocument<uWS::HttpResponse<false>, uWS::HttpRequest>(
-  uWS::HttpResponse<false> *,
+template void phantomchat::handlers::handleDownloadDocument<false>(uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
+
+template void phantomchat::handlers::handleUploadDocument<true>(uWS::HttpResponse<true> *,
+  uWS::HttpRequest *,
+  phantomchat::services::RoomManager &,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
+
+template void phantomchat::handlers::handleDownloadDocument<true>(uWS::HttpResponse<true> *,
+  uWS::HttpRequest *,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<true>> &);
