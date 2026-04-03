@@ -145,3 +145,8 @@ template void phantomchat::handlers::handleStaticFile<uWS::HttpResponse<false>, 
   uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
   const phantomchat::utils::CacheFileProvider &);
+
+template void phantomchat::handlers::handleStaticFile<uWS::HttpResponse<true>, uWS::HttpRequest>(
+  uWS::HttpResponse<true> *,
+  uWS::HttpRequest *,
+  const phantomchat::utils::CacheFileProvider &);

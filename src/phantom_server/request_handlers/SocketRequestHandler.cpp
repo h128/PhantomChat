@@ -169,3 +169,28 @@ template void phantomchat::handlers::handleSignalCall<WsType>(WsType *,
 
 template void
   phantomchat::handlers::handleMessage<WsType>(WsType *, phantomchat::services::RoomManager &, std::string_view);
+
+using SslWsType = uWS::WebSocket<true, true, phantomchat::contracts::PerSocketData>;
+
+template void phantomchat::handlers::handleSendMessage<SslWsType>(SslWsType *,
+  const phantomchat::contracts::SendMessageRequest *);
+
+template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::App>(SslWsType *,
+  phantomchat::services::RoomManager &,
+  uWS::App *);
+
+template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::SSLApp>(SslWsType *,
+  phantomchat::services::RoomManager &,
+  uWS::SSLApp *);
+
+template void phantomchat::handlers::handleJoinOrCreateRoom<SslWsType>(SslWsType *,
+  phantomchat::services::RoomManager &,
+  const phantomchat::contracts::JoinOrCreateRoomRequest *);
+
+template void phantomchat::handlers::sendError<SslWsType>(SslWsType *, const std::string &, const std::string &);
+
+template void phantomchat::handlers::handleSignalCall<SslWsType>(SslWsType *,
+  const phantomchat::contracts::SignalCallRequest *);
+
+template void
+  phantomchat::handlers::handleMessage<SslWsType>(SslWsType *, phantomchat::services::RoomManager &, std::string_view);

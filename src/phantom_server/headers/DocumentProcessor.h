@@ -30,31 +30,30 @@ struct FileContext
   {}
 };
 
-struct UploadTask
-{
+inline std::string upload_root_path;
 
-  uWS::HttpResponse<false> *res = nullptr;
+template<bool SSL = false> struct UploadTask
+{
+  uWS::HttpResponse<SSL> *res = nullptr;
   std::vector<char> file_data;
   std::weak_ptr<FileContext> file_context;
   bool is_last_chunk = false;
-
-  inline static std::string upload_root_path{ "" };
 };
 
-struct DownloadTask
+template<bool SSL = false> struct DownloadTask
 {
-  uWS::HttpResponse<false> *res = nullptr;
+  uWS::HttpResponse<SSL> *res = nullptr;
   std::weak_ptr<FileContext> file_context;
 };
 
 static inline std::atomic<bool> uploadProcessorRunning{ true };
 
-template<typename APP_TYPE>
-std::jthread uploadDocumentBackgroundProcess(APP_TYPE *app,
-  moodycamel::BlockingConcurrentQueue<UploadTask> &task_queue);
+template<bool SSL>
+std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue);
 
-template<typename APP_TYPE>
-std::jthread downloadDocumentBackgroundProcess(APP_TYPE *app,
-  moodycamel::BlockingConcurrentQueue<DownloadTask> &task_queue);
+template<bool SSL>
+std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue);
 
 }// namespace phantomchat::processors

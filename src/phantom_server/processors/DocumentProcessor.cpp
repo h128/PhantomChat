@@ -9,12 +9,13 @@
 
 namespace phantomchat::processors {
 
-template<typename APP_TYPE>
-std::jthread uploadDocumentBackgroundProcess(APP_TYPE *app, moodycamel::BlockingConcurrentQueue<UploadTask> &task_queue)
+template<bool SSL>
+std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
 {
   auto worker_loop = [&task_queue, app] {
     while (uploadProcessorRunning.load()) {
-      UploadTask task;
+      UploadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
       auto context_ptr = task.file_context.lock();
@@ -59,15 +60,15 @@ std::jthread uploadDocumentBackgroundProcess(APP_TYPE *app, moodycamel::Blocking
   return std::jthread(worker_loop);
 }
 
-template<typename APP_TYPE>
-std::jthread downloadDocumentBackgroundProcess(APP_TYPE *app,
-  moodycamel::BlockingConcurrentQueue<DownloadTask> &task_queue)
+template<bool SSL>
+std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
 {
   static constexpr std::size_t chunk_size_bytes = 64U * 1024U;
 
   auto worker_loop = [&task_queue, app] {
     while (uploadProcessorRunning.load()) {
-      DownloadTask task;
+      DownloadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
       auto context_ptr = task.file_context.lock();
@@ -152,8 +153,14 @@ std::jthread downloadDocumentBackgroundProcess(APP_TYPE *app,
 
 }// namespace phantomchat::processors
 
-template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<uWS::App>(uWS::App *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask> &);
+template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<false>(uWS::App *,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
 
-template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<uWS::App>(uWS::App *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask> &);
+template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<false>(uWS::App *,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
+
+template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<true>(uWS::SSLApp *,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
+
+template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<true>(uWS::SSLApp *,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<true>> &);

@@ -1,7 +1,7 @@
+#include "headers/CorsHelper.h"
 #include "headers/DocumentHandler.h"
 #include "headers/SocketRequestHandler.h"
 #include "headers/StaticFileHandler.h"
-#include "headers/CorsHelper.h"
 #include <App.h>
 #include <fmt/core.h>
 #include <fmt/std.h>
@@ -12,15 +12,16 @@
 #include <sodium.h>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 
 using namespace phantomchat::processors;
 
-template<typename APP_TYPE>
-void setup_rest(APP_TYPE &app,
+template<bool SSL>
+void setup_rest(uWS::TemplatedApp<SSL> &app,
   phantomchat::services::RoomManager &room_manager,
   phantomchat::utils::CacheFileProvider &file_provider,
-  moodycamel::BlockingConcurrentQueue<UploadTask> &upload_task_queue,
-  moodycamel::BlockingConcurrentQueue<DownloadTask> &download_task_queue)
+  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &upload_task_queue,
+  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &download_task_queue)
 {
   auto handle_static_file_with_cache = [&file_provider](auto *res, auto *req) {
     phantomchat::handlers::handleStaticFile(res, req, file_provider);
@@ -76,31 +77,47 @@ int main()
 
   phantomchat::config::AppSettings settings;
   settings.load_from_file("appsettings.json");
-  UploadTask::upload_root_path = settings.upload_path;
+  phantomchat::processors::upload_root_path = settings.upload_path;
   phantomchat::cors::allowed_origins = settings.cors_allowed_origins;
 
   auto &room_manager = phantomchat::services::RoomManager::getInstance();
 
   phantomchat::utils::CacheFileProvider file_provider(settings.web_root_path);
-  moodycamel::BlockingConcurrentQueue<UploadTask> upload_task_queue;
-  moodycamel::BlockingConcurrentQueue<DownloadTask> download_task_queue;
 
-  const int worker_thread_count = std::max(1, settings.worker_threads);
-  std::vector<std::jthread> worker_threads;
-  for (int i = 0; i < worker_thread_count; ++i) {
-    worker_threads.emplace_back([&] {
-      uWS::App app;
+  const bool use_ssl = !settings.ssl_certificate.empty() && !settings.ssl_certificate_key.empty();
 
-      auto uploadThread = uploadDocumentBackgroundProcess(&app, upload_task_queue);
-      auto downloadThread = downloadDocumentBackgroundProcess(&app, download_task_queue);
+  auto run_workers = [&]<bool SSL>(std::bool_constant<SSL>) {
+    moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> upload_task_queue;
+    moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> download_task_queue;
 
-      setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
-      setup_websocket(app, room_manager);
-      setup_listen(app, settings);
+    const int worker_thread_count = std::max(1, settings.worker_threads);
+    std::vector<std::jthread> worker_threads;
+    for (int i = 0; i < worker_thread_count; ++i) {
+      worker_threads.emplace_back([&] {
+        uWS::SocketContextOptions options{};
+        if constexpr (SSL) {
+          options.key_file_name = settings.ssl_certificate_key.c_str();
+          options.cert_file_name = settings.ssl_certificate.c_str();
+        }
+        uWS::TemplatedApp<SSL> app(options);
 
-      app.run();
-    });
+        auto uploadThread = uploadDocumentBackgroundProcess(&app, upload_task_queue);
+        auto downloadThread = downloadDocumentBackgroundProcess(&app, download_task_queue);
+
+        setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
+        setup_websocket(app, room_manager);
+        setup_listen(app, settings);
+
+        app.run();
+      });
+    }
+
+    phantomchat::processors::uploadProcessorRunning = false;
+  };
+
+  if (use_ssl) {
+    run_workers(std::bool_constant<true>{});
+  } else {
+    run_workers(std::bool_constant<false>{});
   }
-
-  phantomchat::processors::uploadProcessorRunning = false;// Signal the upload and download processor to stop
 }
