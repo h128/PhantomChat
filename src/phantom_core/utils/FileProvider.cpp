@@ -60,14 +60,15 @@ std::vector<char> FileProvider::compressFile(const std::string &path) const
   const auto ext = std::filesystem::path(path).extension().string();
   if (!isCompressibleExtension(ext)) { return {}; }
 
-  const auto bytes = readAllBytes(path);
+  auto bytes = readAllBytes(path);
 
   z_stream stream{};
-  if (deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+  static constexpr int memLevel = 9;// Maximum memory usage, for best compression
+  if (deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, MAX_WBITS + 16, memLevel, Z_DEFAULT_STRATEGY) != Z_OK) {
     throw std::runtime_error("Failed to initialize zlib deflate for: " + path);
   }
 
-  stream.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(bytes.data()));
+  stream.next_in = reinterpret_cast<Bytef *>(bytes.data());
   stream.avail_in = static_cast<uInt>(bytes.size());
 
   std::vector<char> compressed;
@@ -80,13 +81,7 @@ std::vector<char> FileProvider::compressFile(const std::string &path) const
   deflateEnd(&stream);
 
   if (ret != Z_STREAM_END) { throw std::runtime_error("zlib deflate failed for: " + path); }
-
   compressed.resize(stream.total_out);
-
-  // Write .gz file alongside the original
-  const auto gz_path = path + ".gz";
-  std::ofstream gz_file(gz_path, std::ios::binary);
-  if (gz_file) { gz_file.write(compressed.data(), static_cast<std::streamsize>(compressed.size())); }
 
   return compressed;
 }
