@@ -82,7 +82,7 @@ int main()
 
   auto &room_manager = phantomchat::services::RoomManager::getInstance();
 
-  phantomchat::utils::CacheFileProvider file_provider(settings.web_root_path);
+  phantomchat::utils::CacheFileProvider file_provider(settings.web_root_path, settings.gzip_compression);
 
   const bool use_ssl = !settings.ssl_certificate.empty() && !settings.ssl_certificate_key.empty();
 

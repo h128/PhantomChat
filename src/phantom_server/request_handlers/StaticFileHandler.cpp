@@ -93,14 +93,24 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
     return;
   }
 
+  // Determine if we should serve gzip-compressed version
+  // Original bytes are discarded for compressed files, so always serve gzip
+  const bool serve_gzip = file_provider.hasCompressed(asset_path);
+
   phantomchat::cors::writeHeaders(res, req);
   res->writeHeader("Content-Type", file_provider.mimeType(asset_path));
   res->writeHeader("Cache-Control", "public, max-age=7200");
   res->writeHeader("ETag", etag);
   res->writeHeader("Last-Modified", last_modified_str);
+  if (serve_gzip) {
+    res->writeHeader("Vary", "Accept-Encoding");
+    res->writeHeader("Content-Encoding", "gzip");
+  }
 
-  const auto &bytes = file_provider.readBytesRef(asset_path);
-  if (file_size_bytes < chunked_transfer_threshold_bytes) {
+  const auto &bytes =
+    serve_gzip ? file_provider.readCompressedBytesRef(asset_path) : file_provider.readBytesRef(asset_path);
+  const auto content_size = bytes.size();
+  if (content_size < chunked_transfer_threshold_bytes) {
     res->end(std::string_view(bytes.data(), bytes.size()));
     return;
   }
