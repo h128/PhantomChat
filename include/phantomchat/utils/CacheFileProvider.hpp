@@ -18,16 +18,24 @@ struct PHANTOM_CORE_EXPORT CachedFileEntry
   std::vector<char> bytes;
   std::size_t size;
   std::string mime_type;
+  std::vector<char> compressed_bytes;
+  bool has_compressed = false;
 };
 
 class PHANTOM_CORE_EXPORT CacheFileProvider final : public IFileProvider
 {
 public:
-  explicit CacheFileProvider(std::string root_path);
+  explicit CacheFileProvider(std::string root_path, bool gzip_compression = false);
 
   std::vector<char> readAllBytes(const std::string &path) const override;
 
   const std::vector<char> &readBytesRef(const std::string &path) const;
+
+  const std::vector<char> &readCompressedBytesRef(const std::string &path) const;
+
+  bool hasCompressed(const std::string &path) const noexcept;
+
+  std::uintmax_t compressedSize(const std::string &path) const;
 
   std::uintmax_t size(const std::string &path) const override;
 
@@ -42,6 +50,7 @@ private:
   const CachedFileEntry &getEntry(const std::string &path) const;
   CacheIterator findFile(const std::string &path) const;
   std::string root_path_;
+  bool gzip_enabled_;
   std::unordered_map<std::string, CachedFileEntry> cache_;
 };
 }// namespace phantomchat::utils

@@ -2,9 +2,11 @@
 #include <cctype>
 #include <fstream>
 #include <string_view>
+#include <unordered_set>
 
 #include <phantomchat/utils/FileProvider.hpp>
 #include <stdexcept>
+#include <zlib.h>
 
 namespace phantomchat::utils {
 
@@ -45,4 +47,47 @@ std::filesystem::file_time_type FileProvider::lastWriteTime(const std::string &p
 }
 
 bool FileProvider::exists(const std::string &path) const { return std::filesystem::exists(path); }
+
+std::vector<char> FileProvider::compressFile(const std::string &path) const
+{
+  auto isCompressibleExtension = [](std::string_view ext) {
+    static const std::unordered_set<std::string_view> compressible = {
+      ".html", ".htm", ".css", ".js", ".json", ".svg", ".txt", ".xml"
+    };
+    return compressible.contains(ext);
+  };
+
+  const auto ext = std::filesystem::path(path).extension().string();
+  if (!isCompressibleExtension(ext)) { return {}; }
+
+  const auto bytes = readAllBytes(path);
+
+  z_stream stream{};
+  if (deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+    throw std::runtime_error("Failed to initialize zlib deflate for: " + path);
+  }
+
+  stream.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(bytes.data()));
+  stream.avail_in = static_cast<uInt>(bytes.size());
+
+  std::vector<char> compressed;
+  compressed.resize(deflateBound(&stream, stream.avail_in));
+
+  stream.next_out = reinterpret_cast<Bytef *>(compressed.data());
+  stream.avail_out = static_cast<uInt>(compressed.size());
+
+  const int ret = deflate(&stream, Z_FINISH);
+  deflateEnd(&stream);
+
+  if (ret != Z_STREAM_END) { throw std::runtime_error("zlib deflate failed for: " + path); }
+
+  compressed.resize(stream.total_out);
+
+  // Write .gz file alongside the original
+  const auto gz_path = path + ".gz";
+  std::ofstream gz_file(gz_path, std::ios::binary);
+  if (gz_file) { gz_file.write(compressed.data(), static_cast<std::streamsize>(compressed.size())); }
+
+  return compressed;
+}
 }// namespace phantomchat::utils

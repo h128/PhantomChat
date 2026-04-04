@@ -13,6 +13,8 @@ class PHANTOM_CORE_EXPORT FileProvider final : public IFileProvider
 public:
   std::vector<char> readAllBytes(const std::string &path) const override;
 
+  std::vector<char> compressFile(const std::string &path) const;
+
   std::uintmax_t size(const std::string &path) const override;
 
   std::string_view mimeType(const std::string &path) const override;
