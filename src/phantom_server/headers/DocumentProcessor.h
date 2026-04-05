@@ -46,7 +46,7 @@ template<bool SSL = false> struct DownloadTask
   std::weak_ptr<FileContext> file_context;
 };
 
-static inline std::atomic<bool> uploadProcessorRunning{ true };
+static inline std::atomic<bool> backgroundTasksRunning{ true };
 
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,

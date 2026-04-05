@@ -5,11 +5,16 @@
 #include <utility>
 
 namespace {
-std::string normalizePathKey(const std::string &path)
+std::string normalizePathKey(std::string_view path)
 {
-  auto normalized = std::filesystem::path(path).lexically_normal().generic_string();
-  while (!normalized.empty() && normalized.front() == '/') { normalized.erase(normalized.begin()); }
-  return normalized;
+  const auto pos = path.find_first_not_of('/');
+  if (pos == std::string_view::npos) { return {}; }
+  const auto new_path = path.substr(pos);
+
+  // Reject path traversal and null bytes
+  if (new_path.find("..") != std::string_view::npos || new_path.find('\0') != std::string_view::npos) { return {}; }
+
+  return std::string(new_path);
 }
 }// namespace
 

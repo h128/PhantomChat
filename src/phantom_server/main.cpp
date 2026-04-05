@@ -112,7 +112,7 @@ int main()
       });
     }
 
-    phantomchat::processors::uploadProcessorRunning = false;
+    phantomchat::processors::backgroundTasksRunning = false;
   };
 
   if (use_ssl) {

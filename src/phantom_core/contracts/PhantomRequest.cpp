@@ -69,19 +69,23 @@ PhantomRequestPtr from_json(std::string_view json_string)
 
   switch (cmd) {
   case Command::JoinOrCreateRoom: {
-    auto request = std::make_unique<JoinOrCreateRoomRequest>(json_data.get<JoinOrCreateRoomRequest>());
+    auto request = std::make_unique<JoinOrCreateRoomRequest>();
+    from_json(json_data, *request);
     return request;
   }
   case Command::SendMessage: {
-    auto request = std::make_unique<SendMessageRequest>(json_data.get<SendMessageRequest>());
+    auto request = std::make_unique<SendMessageRequest>();
+    from_json(json_data, *request);
     return request;
   }
   case Command::SignalCall: {
-    auto request = std::make_unique<SignalCallRequest>(json_data.get<SignalCallRequest>());
+    auto request = std::make_unique<SignalCallRequest>();
+    from_json(json_data, *request);
     return request;
   }
   case Command::LeaveRoom: {
-    auto request = std::make_unique<LeaveRoomRequest>(json_data.get<LeaveRoomRequest>());
+    auto request = std::make_unique<LeaveRoomRequest>();
+    from_json(json_data, *request);
     return request;
   }
   default:

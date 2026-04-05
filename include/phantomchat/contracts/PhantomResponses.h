@@ -41,11 +41,11 @@ public:
 class PHANTOM_CORE_EXPORT GeneralResponse final : public PhantomResponseBase
 {
 public:
-  explicit GeneralResponse(const std::string &message_ = "", const std::string &request_uuid_ = "")
+  explicit GeneralResponse(std::string message_ = {}, std::string request_uuid_ = {})
   {
     status = ResponseStatus::Success;
-    message = message_;
-    request_uuid = request_uuid_;
+    message = std::move(message_);
+    request_uuid = std::move(request_uuid_);
   }
 };// namespace phantomchat::contracts
 
@@ -53,10 +53,10 @@ public:
 class PHANTOM_CORE_EXPORT ErrorResponse final : public PhantomResponseBase
 {
 public:
-  explicit ErrorResponse(const std::string &err_message = "")
+  explicit ErrorResponse(std::string err_message = {})
   {
     status = ResponseStatus::Error;
-    message = err_message;
+    message = std::move(err_message);
   }
 };
 

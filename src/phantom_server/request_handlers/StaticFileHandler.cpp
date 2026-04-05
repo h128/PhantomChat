@@ -11,6 +11,9 @@
 #include <string_view>
 #include <vector>
 
+#include <fmt/chrono.h>
+#include <fmt/compile.h>
+
 namespace {
 using namespace std::chrono;
 using namespace std::filesystem;
@@ -23,26 +26,23 @@ std::time_t toEpoch(file_time_type ftime)
 
 std::string formatHttpDate(file_time_type ftime)
 {
-  std::tm tm{};
-  auto epoch = toEpoch(ftime);
-  gmtime_r(&epoch, &tm);
-  char buf[32];
-  std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm);
-  return std::string(buf);
+  return fmt::format(FMT_COMPILE("{:%a, %d %b %Y %H:%M:%S} GMT"), fmt::gmtime(toEpoch(ftime)));
 }
 
 std::string makeETag(std::uintmax_t size, file_time_type ftime)
 {
-  return '"' + std::to_string(size) + '-' + std::to_string(toEpoch(ftime)) + '"';
+  return fmt::format(FMT_COMPILE("\"{}-{}\""), size, toEpoch(ftime));
 }
 
 std::time_t parseHttpDate(std::string_view sv)
 {
-  std::tm tm{};
-  if (strptime(std::string(sv).c_str(), "%a, %d %b %Y %H:%M:%S GMT", &tm) == nullptr) {
-    return static_cast<std::time_t>(-1);
+  char buf[32] = {};
+  if (sv.size() <= sizeof(buf) - 1) {
+    std::copy_n(sv.data(), sv.size(), buf);
+    std::tm tm{};
+    if (strptime(buf, "%a, %d %b %Y %H:%M:%S GMT", &tm) != nullptr) { return timegm(&tm); }
   }
-  return timegm(&tm);
+  return static_cast<std::time_t>(-1);
 }
 }// anonymous namespace
 

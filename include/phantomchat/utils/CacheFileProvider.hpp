@@ -17,7 +17,7 @@ struct PHANTOM_CORE_EXPORT CachedFileEntry
   std::filesystem::file_time_type last_write_time;
   std::vector<char> bytes;
   std::size_t size;
-  std::string mime_type;
+  std::string_view mime_type;
   std::vector<char> compressed_bytes;
   bool has_compressed = false;
 };
