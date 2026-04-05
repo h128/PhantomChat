@@ -15,5 +15,11 @@ struct AppSettings
   std::vector<std::string> cors_allowed_origins = { "*" };
 
   void load_from_file(const std::string &filename);
+
+  static AppSettings &getInstance()
+  {
+    static AppSettings instance;
+    return instance;
+  }
 };
 }// namespace phantomchat::config

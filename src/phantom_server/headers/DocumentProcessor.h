@@ -30,8 +30,6 @@ struct FileContext
   {}
 };
 
-inline std::string upload_root_path;
-
 template<bool SSL = false> struct UploadTask
 {
   uWS::HttpResponse<SSL> *res = nullptr;

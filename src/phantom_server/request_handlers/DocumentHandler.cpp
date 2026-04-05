@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <phantomchat/config/AppSettings.h>
 #include <phantomchat/utils/HelperFunctions.h>
 
 #define MAX_UPLOAD_SIZE_BYTES (100 * 1024 * 1024)// 100 MB
@@ -57,7 +58,7 @@ void handleUploadDocument(uWS::HttpResponse<SSL> *res,
   }
 
   // 4. Prepare for file upload
-  auto upload_path = std::filesystem::path(upload_root_path) / room_name / safe_file_name;
+  auto upload_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / room_name / safe_file_name;
   std::filesystem::create_directories(upload_path.parent_path());
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
@@ -109,7 +110,7 @@ void handleDownloadDocument(uWS::HttpResponse<SSL> *res,
   }
 
   // 3. Prepare for file download
-  auto download_path = std::filesystem::path(upload_root_path) / safe_room_name / safe_file_name;
+  auto download_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / safe_room_name / safe_file_name;
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
   auto file_context =
