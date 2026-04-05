@@ -14,9 +14,7 @@ namespace {
   template<typename WS_TYPE, typename EventType>
   void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
   {
-    json j = event;
-    const std::string payload = j.dump();
-    ws->publish(topic, payload, uWS::OpCode::TEXT);
+    ws->publish(topic, nlohmann::json(event).dump(), uWS::OpCode::TEXT);
   }
 }// anonymous namespace
 
@@ -32,8 +30,8 @@ template<typename WS_TYPE> void handleSendMessage(WS_TYPE *ws, const SendMessage
 
   ws->send(json(response).dump(), uWS::OpCode::TEXT);
 
-  const std::string topic = socket_data->room_name;
-  const std::string sender_uuid = socket_data->user_uuid;
+  const std::string &topic = socket_data->room_name;
+  const std::string &sender_uuid = socket_data->user_uuid;
   dispatch_event(ws, NewMessageReceivedEvent(sender_uuid, request->message), topic);
 }
 
@@ -42,8 +40,8 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, APP_TYPE *app)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
-    const std::string topic = socket_data->room_name;
-    const std::string user_uuid = socket_data->user_uuid;
+    const std::string &topic = socket_data->room_name;
+    const std::string &user_uuid = socket_data->user_uuid;
 
     room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
@@ -92,7 +90,7 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   ws->send(json(response).dump(), uWS::OpCode::TEXT);
 
   // Dispatch events
-  const std::string topic = request->room_name;
+  const std::string &topic = request->room_name;
   if (result.room_created) { dispatch_event(ws, RoomCreatedEvent(request->room_name), topic); }
   dispatch_event(ws, UserEnteredRoomEvent(request->room_name, request->user_uuid), topic);
 }
@@ -104,8 +102,8 @@ template<typename WS_TYPE> void handleSignalCall(WS_TYPE *ws, const SignalCallRe
     throw std::invalid_argument("User not in a room");
   }
 
-  const std::string topic = socket_data->room_name;
-  const std::string sender_uuid = socket_data->user_uuid;
+  const std::string &topic = socket_data->room_name;
+  const std::string &sender_uuid = socket_data->user_uuid;
 
   GeneralResponse resp("Signal call dispatched successfully", request->request_uuid);
   ws->send(json(resp).dump(), uWS::OpCode::TEXT);
@@ -129,13 +127,13 @@ template<typename WS_TYPE> void handleMessage(WS_TYPE *ws, RoomManager &room_man
 
     switch (request->command) {
     case Command::JoinOrCreateRoom:
-      handleJoinOrCreateRoom(ws, room_manager, dynamic_cast<JoinOrCreateRoomRequest *>(request.get()));
+      handleJoinOrCreateRoom(ws, room_manager, static_cast<JoinOrCreateRoomRequest *>(request.get()));
       break;
     case Command::SendMessage:
-      handleSendMessage(ws, dynamic_cast<SendMessageRequest *>(request.get()));
+      handleSendMessage(ws, static_cast<SendMessageRequest *>(request.get()));
       break;
     case Command::SignalCall:
-      handleSignalCall(ws, dynamic_cast<SignalCallRequest *>(request.get()));
+      handleSignalCall(ws, static_cast<SignalCallRequest *>(request.get()));
       break;
     case Command::LeaveRoom:
       handleLeaveRoom(ws, room_manager, static_cast<uWS::App *>(nullptr));

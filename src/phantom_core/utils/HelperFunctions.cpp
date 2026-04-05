@@ -1,17 +1,18 @@
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <phantomchat/utils/HelperFunctions.h>
 
 namespace phantomchat::utils {
 
 std::size_t str_to_long(std::string_view sv)
 {
-  if (sv.empty() || sv.front() == '-') { return 0; }
-  try {
-    return std::stoull(std::string(sv));
-  } catch (const std::exception &) {
-    return 0;
-  }
+  std::size_t value = 0;
+  const auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
+
+  if (ec != std::errc{} || ptr == sv.data()) { return 0; }
+
+  return value;
 }
 
 std::string url_decode(std::string_view sv)

@@ -14,7 +14,7 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
 {
   auto worker_loop = [&task_queue, app] {
-    while (uploadProcessorRunning.load()) {
+    while (backgroundTasksRunning.load()) {
       UploadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
@@ -29,7 +29,7 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
         context_ptr->file_stream.open(context_ptr->filename, std::ios::binary | std::ios::out);
         if (!context_ptr->file_stream) {
           // Failed to open file, close connection
-          if (!context_ptr->aborted) { task.res->close(); }
+          app->getLoop()->defer([res = task.res] { res->close(); });
           continue;
         }
       }
@@ -42,18 +42,19 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
 
       if (context_ptr->aborted) continue;
 
-      app->getLoop()->defer([res = task.res, cors_origin = context_ptr->cors_origin] {
+      app->getLoop()->defer([app, res = task.res, context_ptr] {
         res->writeStatus("200 OK");
-        phantomchat::cors::writeHeaders(res, cors_origin);
+        phantomchat::cors::writeHeaders(res, context_ptr->cors_origin);
         res->end("File uploaded successfully");
+
+
+        phantomchat::events::FileUploadedEvent event(std::filesystem::path(context_ptr->filename).filename().string(),
+          context_ptr->room_name,
+          context_ptr->user_uuid,
+          context_ptr->is_poster);
+
+        app->publish(event.room_name, json(event).dump(), uWS::OpCode::TEXT);
       });
-
-      std::string just_filename = std::filesystem::path(context_ptr->filename).filename().string();
-
-      phantomchat::events::FileUploadedEvent event(
-        just_filename, context_ptr->room_name, context_ptr->user_uuid, context_ptr->is_poster);
-
-      app->publish(event.room_name, json(event).dump(), uWS::OpCode::TEXT);
     }
   };
 
@@ -67,7 +68,7 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   static constexpr std::size_t chunk_size_bytes = 64U * 1024U;
 
   auto worker_loop = [&task_queue, app] {
-    while (uploadProcessorRunning.load()) {
+    while (backgroundTasksRunning.load()) {
       DownloadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
@@ -96,15 +97,17 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
 
       if (context_ptr->aborted) continue;
 
-      std::string just_filename = std::filesystem::path(context_ptr->filename).filename().string();
-      phantomchat::utils::FileProvider file_provider;
-      std::string content_type(file_provider.mimeType(context_ptr->filename));
 
       app->getLoop()->defer(
-        [res = task.res, bytes, just_filename, content_type, cors_origin = context_ptr->cors_origin]() {
+        [res = task.res, bytes, cors_origin = context_ptr->cors_origin, filename = context_ptr->filename]() {
           res->writeStatus("200 OK");
           phantomchat::cors::writeHeaders(res, cors_origin);
-          res->writeHeader("Content-Type", content_type);
+
+          phantomchat::utils::FileProvider file_provider;
+          res->writeHeader("Content-Type", file_provider.mimeType(filename));
+
+          std::string just_filename = std::filesystem::path(filename).filename().string();
+
           res->writeHeader("Content-Disposition", "attachment; filename=\"" + just_filename + "\"");
           res->writeHeader("Transfer-Encoding", "chunked");
 
