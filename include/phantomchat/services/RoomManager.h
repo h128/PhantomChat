@@ -60,7 +60,8 @@ public:
 
   bool isUserMemberOfRoom(const RoomArgs &args) const;
 
-  void leaveRoom(const RoomArgs &args);
+  enum class LeaveRoomResult { Success, RoomNotFound, UserNotInRoom, RoomEmptyAndDeleted };
+  LeaveRoomResult leaveRoom(const RoomArgs &args);
 
   std::vector<Room> getAllRooms() const;
 

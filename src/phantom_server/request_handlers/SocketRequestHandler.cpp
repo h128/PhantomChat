@@ -1,8 +1,10 @@
 #include "../headers/SocketRequestHandler.h"
 
+#include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
 #include <phantomchat/utils/JsonSerialization.hpp>
+#include <thread>
 
 namespace phantomchat::handlers {
 
@@ -43,7 +45,16 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, APP_TYPE *app)
     const std::string &topic = socket_data->room_name;
     const std::string &user_uuid = socket_data->user_uuid;
 
-    room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
+    auto result = room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
+    if (result == RoomManager::LeaveRoomResult::RoomEmptyAndDeleted) {
+      namespace fs = std::filesystem;
+      namespace cfg = phantomchat::config;
+      const auto room_upload_path = fs::path(cfg::AppSettings::getInstance().upload_path) / topic;
+      std::jthread([room_upload_path] {
+        std::error_code ec;
+        fs::remove_all(room_upload_path, ec);
+      }).detach();
+    }
 
     LeaveRoomEvent leave_room_event(user_uuid);
 

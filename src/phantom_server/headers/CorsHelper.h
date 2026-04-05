@@ -1,15 +1,15 @@
 #pragma once
 #include <algorithm>
+#include <phantomchat/config/AppSettings.h>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace phantomchat::cors {
 
-inline std::vector<std::string> allowed_origins = { "*" };
-
 inline std::string resolveOrigin(std::string_view request_origin)
 {
+  const auto &allowed_origins = phantomchat::config::AppSettings::getInstance().cors_allowed_origins;
   for (const auto &origin : allowed_origins) {
     if (origin == "*") { return "*"; }
     if (origin == request_origin) { return std::string(request_origin); }

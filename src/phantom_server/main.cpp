@@ -75,10 +75,8 @@ int main()
   fmt::print("Hello, {}...\n", "PhantomServer");
 
 
-  phantomchat::config::AppSettings settings;
+  auto &settings = phantomchat::config::AppSettings::getInstance();
   settings.load_from_file("appsettings.json");
-  phantomchat::processors::upload_root_path = settings.upload_path;
-  phantomchat::cors::allowed_origins = settings.cors_allowed_origins;
 
   auto &room_manager = phantomchat::services::RoomManager::getInstance();
 

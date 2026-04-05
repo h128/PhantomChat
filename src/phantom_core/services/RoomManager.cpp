@@ -78,7 +78,7 @@ std::vector<Room> RoomManager::getAllRooms() const
   return result;
 }
 
-void RoomManager::leaveRoom(const RoomArgs &args)
+RoomManager::LeaveRoomResult RoomManager::leaveRoom(const RoomArgs &args)
 {
   std::unique_lock<std::shared_mutex> lock(rooms_mutex);
   auto it = rooms.find(args.room_name);
@@ -86,11 +86,17 @@ void RoomManager::leaveRoom(const RoomArgs &args)
   if (it != rooms.end()) {
 
     auto &members = it->second.members;
+    if (!members.contains(args.user_uuid)) { return LeaveRoomResult::UserNotInRoom; }
     members.erase(args.user_uuid);
 
     // If room is empty after user leaves, remove the room
-    if (members.empty()) { rooms.erase(it); }
+    if (members.empty()) {
+      rooms.erase(it);
+      return LeaveRoomResult::RoomEmptyAndDeleted;
+    }
+    return LeaveRoomResult::Success;
   }
+  return LeaveRoomResult::RoomNotFound;
 }
 
 }// namespace phantomchat::services
