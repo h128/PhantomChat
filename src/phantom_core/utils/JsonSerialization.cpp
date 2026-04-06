@@ -52,6 +52,7 @@ void to_json(nlohmann::json &j, const JoinOrCreateRoomResponse &response)
     { "message", response.message },
     { "room_name", response.room_name },
     { "room_key", response.room_key },
+    { "server_pub_key", response.server_pub_key },
     { "room_created", response.room_created },
     { "members", response.members } };
 }

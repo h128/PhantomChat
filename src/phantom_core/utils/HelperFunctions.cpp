@@ -55,4 +55,10 @@ bool is_safe(const std::string &value)
     value.begin(), value.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; });
 }
 
+bool is_valid_hex(const std::string &value, std::size_t expected_bytes)
+{
+  if (value.size() != expected_bytes * 2) { return false; }
+  return std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isxdigit(c); });
+}
+
 }// namespace phantomchat::utils

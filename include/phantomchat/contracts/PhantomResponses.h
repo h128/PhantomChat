@@ -28,6 +28,7 @@ public:
 
   std::string room_name;
   std::string room_key;
+  std::string server_pub_key;
   bool room_created = false;// true if room was newly created, false if existing
   std::unordered_set<std::string> members;// list of user_uuids currently in the room
 };

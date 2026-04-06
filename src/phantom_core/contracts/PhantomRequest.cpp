@@ -6,13 +6,12 @@
 namespace phantomchat::contracts {
 
 using phantomchat::utils::is_safe;
+using phantomchat::utils::is_valid_hex;
 using phantomchat::utils::trim;
 
 void JoinOrCreateRoomRequest::validate()
 {
-  trim(user_uuid);
   trim(room_name);
-  trim(public_key);
 
   if (user_uuid.size() > 64) { throw std::invalid_argument("user_uuid exceeds maximum length of 64"); }
   if (!is_safe(user_uuid)) {
@@ -25,9 +24,10 @@ void JoinOrCreateRoomRequest::validate()
     throw std::invalid_argument("room_name must contain only alphanumeric characters, hyphens, or underscores");
   }
 
-  if (public_key.size() > 512) { throw std::invalid_argument("public_key exceeds maximum length of 512"); }
-  if (!is_safe(public_key)) {
-    throw std::invalid_argument("public_key must contain only alphanumeric characters, hyphens, or underscores");
+  if (public_key.empty()) { throw std::invalid_argument("public_key is required"); }
+  static constexpr std::size_t PUBLICKEYBYTES = 32;
+  if (!is_valid_hex(public_key, PUBLICKEYBYTES)) {
+    throw std::invalid_argument("public_key must be a valid 32-byte hex-encoded key");
   }
 }
 
