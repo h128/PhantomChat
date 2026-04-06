@@ -88,8 +88,10 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   response.request_uuid = request->request_uuid;
   response.room_name = request->room_name;
 
-  response.room_key = crypto_room::encryptRoomKey(result.room_key, request->public_key);
-  response.server_pub_key = result.server_pub_key;
+  response.room_key = crypto_room::encryptRoomKey({ .room_key = result.room_key,
+    .user_public_key_hex = request->public_key,
+    .server_key_pair = result.server_key_pair });
+  response.server_pub_key = result.server_key_pair.public_key;
   response.room_created = result.room_created;
   response.members = result.members;
   response.message = result.room_created ? "Room created successfully" : "Joined room successfully";

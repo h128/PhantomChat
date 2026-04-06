@@ -1,4 +1,14 @@
+#include <chrono>
+#include <fmt/chrono.h>
 #include <phantomchat/utils/JsonSerialization.hpp>
+
+namespace {
+inline std::string utc_now_iso()
+{
+  return fmt::format(
+    "{:%Y-%m-%dT%H:%M:%SZ}", std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
+}
+}// anonymous namespace
 
 namespace phantomchat::contracts {
 
@@ -54,27 +64,31 @@ void to_json(nlohmann::json &j, const JoinOrCreateRoomResponse &response)
     { "room_key", response.room_key },
     { "server_pub_key", response.server_pub_key },
     { "room_created", response.room_created },
-    { "members", response.members } };
+    { "members", response.members },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const SendMessageResponse &response)
 {
   j = nlohmann::json{ { "request_uuid", response.request_uuid },
     { "status", static_cast<int>(response.status) },
-    { "message", response.message } };
+    { "message", response.message },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const ErrorResponse &response)
 {
   j = nlohmann::json{ { "request_uuid", response.request_uuid },
     { "status", static_cast<int>(response.status) },
-    { "message", response.message } };
+    { "message", response.message },
+    { "timestamp", utc_now_iso() } };
 }
 void to_json(nlohmann::json &j, const GeneralResponse &response)
 {
   j = nlohmann::json{ { "request_uuid", response.request_uuid },
     { "status", static_cast<int>(response.status) },
-    { "message", response.message } };
+    { "message", response.message },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const SessionDescription &sd)
@@ -152,26 +166,32 @@ namespace phantomchat::events {
 
 void to_json(nlohmann::json &j, const RoomCreatedEvent &event)
 {
-  j = nlohmann::json{ { "event_name", event.event_name }, { "room_name", event.room_name } };
+  j = nlohmann::json{
+    { "event_name", event.event_name }, { "room_name", event.room_name }, { "timestamp", utc_now_iso() }
+  };
 }
 
 void to_json(nlohmann::json &j, const UserEnteredRoomEvent &event)
 {
-  j = nlohmann::json{
-    { "event_name", event.event_name }, { "room_name", event.room_name }, { "user_uuid", event.user_uuid }
-  };
+  j = nlohmann::json{ { "event_name", event.event_name },
+    { "room_name", event.room_name },
+    { "user_uuid", event.user_uuid },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const NewMessageReceivedEvent &event)
 {
-  j = nlohmann::json{
-    { "event_name", event.event_name }, { "sender_uuid", event.sender_uuid }, { "message", event.message }
-  };
+  j = nlohmann::json{ { "event_name", event.event_name },
+    { "sender_uuid", event.sender_uuid },
+    { "message", event.message },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const LeaveRoomEvent &event)
 {
-  j = nlohmann::json{ { "event_name", event.event_name }, { "user_uuid", event.user_uuid } };
+  j = nlohmann::json{
+    { "event_name", event.event_name }, { "user_uuid", event.user_uuid }, { "timestamp", utc_now_iso() }
+  };
 }
 
 void to_json(nlohmann::json &j, const FileUploadedEvent &event)
@@ -179,7 +199,8 @@ void to_json(nlohmann::json &j, const FileUploadedEvent &event)
   j = nlohmann::json{ { "event_name", event.event_name },
     { "file_name", event.file_name },
     { "user_uuid", event.user_uuid },
-    { "poster", event.poster } };
+    { "poster", event.poster },
+    { "timestamp", utc_now_iso() } };
 }
 
 void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
@@ -201,7 +222,8 @@ void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
   j = nlohmann::json{ { "event_name", event.event_name },
     { "action", static_cast<int>(event.action) },
     { "sender_uuid", event.sender_uuid },
-    { "data", data_json } };
+    { "data", data_json },
+    { "timestamp", utc_now_iso() } };
 }
 
 }// namespace phantomchat::events
