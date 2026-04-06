@@ -40,14 +40,14 @@ KeyPair genNewKeyPair()
     .secret_key = std::string(sk_hex.data(), sk_hex.size() - 1) };
 }
 
-std::string encryptRoomKey(const std::string &room_key, const std::string &user_public_key_hex)
+std::string encryptRoomKey(const EncryptRoomArgs &args)
 {
   // Decode user's hex public key
   std::array<unsigned char, crypto_box_PUBLICKEYBYTES> user_pk{};
   if (sodium_hex2bin(user_pk.data(),
         user_pk.size(),
-        user_public_key_hex.c_str(),
-        user_public_key_hex.size(),
+        args.user_public_key_hex.c_str(),
+        args.user_public_key_hex.size(),
         nullptr,
         nullptr,
         nullptr)
@@ -55,14 +55,31 @@ std::string encryptRoomKey(const std::string &room_key, const std::string &user_
     throw std::invalid_argument("Invalid user public key hex");
   }
 
-  const auto *plaintext = reinterpret_cast<const unsigned char *>(room_key.data());
-  const auto plaintext_len = room_key.size();
+  // Decode server's hex secret key
+  std::array<unsigned char, crypto_box_SECRETKEYBYTES> server_sk{};
+  if (sodium_hex2bin(server_sk.data(),
+        server_sk.size(),
+        args.server_key_pair.secret_key.c_str(),
+        args.server_key_pair.secret_key.size(),
+        nullptr,
+        nullptr,
+        nullptr)
+      != 0) {
+    throw std::invalid_argument("Invalid server secret key hex");
+  }
 
-  // crypto_box_seal: ciphertext = crypto_box_SEALBYTES + plaintext_len
-  const auto ciphertext_len = crypto_box_SEALBYTES + plaintext_len;
+  const auto *plaintext = reinterpret_cast<const unsigned char *>(args.room_key.data());
+  const auto plaintext_len = args.room_key.size();
+
+  // Use zero nonce (client derives the same nonce)
+  std::array<unsigned char, crypto_box_NONCEBYTES> nonce{};
+
+  // crypto_box_easy: ciphertext = crypto_box_MACBYTES + plaintext_len
+  const auto ciphertext_len = crypto_box_MACBYTES + plaintext_len;
   std::vector<unsigned char> ciphertext(ciphertext_len);
 
-  if (crypto_box_seal(ciphertext.data(), plaintext, plaintext_len, user_pk.data()) != 0) {
+  if (crypto_box_easy(ciphertext.data(), plaintext, plaintext_len, nonce.data(), user_pk.data(), server_sk.data())
+      != 0) {
     throw std::runtime_error("Encryption failed");
   }
 

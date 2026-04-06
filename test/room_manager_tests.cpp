@@ -14,7 +14,8 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
 
   REQUIRE(result.room_created);
   REQUIRE(result.room_key.size() == 64);
-  REQUIRE_FALSE(result.server_pub_key.empty());
+  REQUIRE_FALSE(result.server_key_pair.public_key.empty());
+  REQUIRE_FALSE(result.server_key_pair.secret_key.empty());
   REQUIRE(manager.roomExists(room_name));
 
   const auto room_opt = manager.getRoom(room_name);
@@ -24,8 +25,8 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
   REQUIRE(room.room_name == room_name);
   REQUIRE(room.created_by == "user-1");
   REQUIRE(room.room_key == result.room_key);
-  REQUIRE_FALSE(room.server_public_key.empty());
-  REQUIRE_FALSE(room.server_secret_key.empty());
+  REQUIRE_FALSE(room.server_key_pair.public_key.empty());
+  REQUIRE_FALSE(room.server_key_pair.secret_key.empty());
   REQUIRE(room.members.size() == 1);
   REQUIRE(room.members.count("user-1") == 1);
 }
@@ -46,7 +47,7 @@ TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-mana
   REQUIRE_FALSE(duplicate.room_created);
   REQUIRE(first.room_key == second.room_key);
   REQUIRE(second.room_key == duplicate.room_key);
-  REQUIRE(first.server_pub_key == second.server_pub_key);
+  REQUIRE(first.server_key_pair.public_key == second.server_key_pair.public_key);
 
   const auto room_opt = manager.getRoom(room_name);
   REQUIRE(room_opt.has_value());
