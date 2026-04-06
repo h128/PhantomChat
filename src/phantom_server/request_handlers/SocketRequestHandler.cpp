@@ -3,6 +3,7 @@
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
+#include <phantomchat/services/CryptoRoom.h>
 #include <phantomchat/utils/JsonSerialization.hpp>
 #include <thread>
 
@@ -87,7 +88,8 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   response.request_uuid = request->request_uuid;
   response.room_name = request->room_name;
 
-  response.room_key = result.room_key;
+  response.room_key = crypto_room::encryptRoomKey(result.room_key, request->public_key);
+  response.server_pub_key = result.server_pub_key;
   response.room_created = result.room_created;
   response.members = result.members;
   response.message = result.room_created ? "Room created successfully" : "Joined room successfully";

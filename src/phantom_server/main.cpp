@@ -7,9 +7,9 @@
 #include <fmt/std.h>
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PerSocketData.h>
+#include <phantomchat/services/CryptoRoom.h>
 #include <phantomchat/services/RoomManager.h>
 #include <phantomchat/utils/CacheFileProvider.hpp>
-#include <sodium.h>
 #include <string_view>
 #include <thread>
 #include <type_traits>
@@ -70,7 +70,7 @@ template<typename APP_TYPE> void setup_listen(APP_TYPE &app, const phantomchat::
 
 int main()
 {
-  if (sodium_init() == -1) { throw std::runtime_error("Failed to initialize libsodium"); }
+  phantomchat::services::crypto_room::init();
 
   fmt::print("Hello, {}...\n", "PhantomServer");
 

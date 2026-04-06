@@ -1,21 +1,7 @@
-#include <array>
+#include <phantomchat/services/CryptoRoom.h>
 #include <phantomchat/services/RoomManager.h>
-#include <sodium.h>
 
 namespace phantomchat::services {
-
-std::string RoomManager::generateRoomKey()
-{
-  constexpr int room_key_size = 32;
-
-  std::array<unsigned char, room_key_size> key{};
-  randombytes_buf(key.data(), key.size());
-
-  std::array<char, room_key_size * 2 + 1> hex{};
-  sodium_bin2hex(hex.data(), hex.size(), key.data(), key.size());
-
-  return std::string(hex.data(), hex.size() - 1);
-}
 
 RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &args)
 {
@@ -29,16 +15,24 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
     auto &members = room.members;
     members.insert(args.user_uuid);
 
-    return { .room_created = false, .room_key = room.room_key, .members = members };
+    return {
+      .room_created = false, .room_key = room.room_key, .server_pub_key = room.server_public_key, .members = members
+    };
   } else {
     // Room doesn't exist, create it
+    auto kp = crypto_room::genNewKeyPair();
 
     Room new_room{ .room_name = args.room_name,
-      .room_key = generateRoomKey(),
+      .room_key = crypto_room::generateRoomKey(),
+      .server_public_key = kp.public_key,
+      .server_secret_key = kp.secret_key,
       .members = { args.user_uuid },
       .created_by = args.user_uuid };
 
-    JoinOrCreateResult response{ .room_created = true, .room_key = new_room.room_key, .members = new_room.members };
+    JoinOrCreateResult response{ .room_created = true,
+      .room_key = new_room.room_key,
+      .server_pub_key = new_room.server_public_key,
+      .members = new_room.members };
     rooms.emplace(args.room_name, std::move(new_room));
 
     return response;

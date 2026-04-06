@@ -15,6 +15,8 @@ struct PHANTOM_CORE_EXPORT Room
 {
   std::string room_name;
   std::string room_key;
+  std::string server_public_key;// hex-encoded
+  std::string server_secret_key;// hex-encoded
   std::unordered_set<std::string> members;// list of user_uuids
   std::string created_by;// user_uuid who created the room
 };
@@ -26,6 +28,7 @@ public:
   {
     bool room_created = false;// true if new room was created, false if existing room
     std::string room_key;
+    std::string server_pub_key;// hex-encoded server public key for this room
     std::unordered_set<std::string> members;// list of user_uuids
   };
 
@@ -68,7 +71,6 @@ public:
 private:
   mutable std::shared_mutex rooms_mutex;
   std::unordered_map<std::string, Room> rooms;
-  static std::string generateRoomKey();
 };
 
 }// namespace phantomchat::services

@@ -6,6 +6,7 @@ add_library(phantom_core
   config/AppSettings.cpp
   contracts/PhantomRequest.cpp
   services/RoomManager.cpp
+  services/CryptoRoom.cpp
   utils/CacheFileProvider.cpp
   utils/FileProvider.cpp
   utils/HelperFunctions.cpp)
