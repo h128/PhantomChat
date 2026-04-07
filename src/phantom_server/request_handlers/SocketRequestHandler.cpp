@@ -82,7 +82,10 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
       "The user is already in another room; they should leave the current room before creating or joining a new one");
   }
 
-  auto result = room_manager.joinOrCreateRoom({ .room_name = request->room_name, .user_uuid = request->user_uuid });
+  auto result = room_manager.joinOrCreateRoom({ .room_name = request->room_name,
+    .user_uuid = request->user_uuid,
+    .avatar_id = request->avatar_id,
+    .display_name = request->display_name });
 
   JoinOrCreateRoomResponse response;
   response.request_uuid = request->request_uuid;
@@ -107,7 +110,8 @@ void handleJoinOrCreateRoom(WS_TYPE *ws, RoomManager &room_manager, const JoinOr
   // Dispatch events
   const std::string &topic = request->room_name;
   if (result.room_created) { dispatch_event(ws, RoomCreatedEvent(request->room_name), topic); }
-  dispatch_event(ws, UserEnteredRoomEvent(request->room_name, request->user_uuid), topic);
+  dispatch_event(
+    ws, UserEnteredRoomEvent(request->room_name, request->user_uuid, request->avatar_id, request->display_name), topic);
 }
 
 template<typename WS_TYPE> void handleSignalCall(WS_TYPE *ws, const SignalCallRequest *request)

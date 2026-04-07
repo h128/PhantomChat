@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 #include <phantomchat/contracts/PhantomRequests.h>
 #include <phantomchat/phantom_core_export.hpp>
@@ -28,12 +29,18 @@ public:
 class PHANTOM_CORE_EXPORT UserEnteredRoomEvent final : public EventBase
 {
 public:
-  explicit UserEnteredRoomEvent(std::string room_name_, std::string user_uuid_)
-    : EventBase("UserEnteredRoom"), room_name(std::move(room_name_)), user_uuid(std::move(user_uuid_))
+  explicit UserEnteredRoomEvent(std::string room_name_,
+    std::string user_uuid_,
+    int16_t avatar_id_,
+    std::string display_name_)
+    : EventBase("UserEnteredRoom"), room_name(std::move(room_name_)), user_uuid(std::move(user_uuid_)),
+      avatar_id(avatar_id_), display_name(std::move(display_name_))
   {}
 
   std::string room_name;
   std::string user_uuid;
+  int16_t avatar_id = 0;
+  std::string display_name;
 };
 
 class PHANTOM_CORE_EXPORT NewMessageReceivedEvent final : public EventBase

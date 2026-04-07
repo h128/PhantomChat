@@ -1,8 +1,9 @@
 #pragma once
 
+#include <phantomchat/contracts/Member.h>
 #include <phantomchat/phantom_core_export.hpp>
+#include <span>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace phantomchat::contracts {
@@ -30,7 +31,7 @@ public:
   std::string room_key;
   std::string server_pub_key;
   bool room_created = false;// true if room was newly created, false if existing
-  std::unordered_set<std::string> members;// list of user_uuids currently in the room
+  std::span<const Member> members;
 };
 
 class PHANTOM_CORE_EXPORT SendMessageResponse final : public PhantomResponseBase
