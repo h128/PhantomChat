@@ -1,5 +1,13 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <phantomchat/services/RoomManager.h>
+
+namespace {
+bool has_member(const std::vector<phantomchat::contracts::Member> &members, const std::string &uuid)
+{
+  return std::ranges::any_of(members, [&](const auto &m) { return m.user_uuid == uuid; });
+}
+}// namespace
 
 TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
 {
@@ -28,7 +36,7 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
   REQUIRE_FALSE(room.server_key_pair.public_key.empty());
   REQUIRE_FALSE(room.server_key_pair.secret_key.empty());
   REQUIRE(room.members.size() == 1);
-  REQUIRE(room.members.count("user-1") == 1);
+  REQUIRE(has_member(room.members, "user-1"));
 }
 
 TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-manager]")
@@ -54,8 +62,8 @@ TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-mana
 
   const auto &members = room_opt->get().members;
   REQUIRE(members.size() == 2);
-  REQUIRE(members.count("user-1") == 1);
-  REQUIRE(members.count("user-2") == 1);
+  REQUIRE(has_member(members, "user-1"));
+  REQUIRE(has_member(members, "user-2"));
 }
 
 TEST_CASE("leaveRoom removes member and deletes empty room", "[room-manager]")
@@ -74,7 +82,7 @@ TEST_CASE("leaveRoom removes member and deletes empty room", "[room-manager]")
   const auto room_after_first_leave = manager.getRoom(room_name);
   REQUIRE(room_after_first_leave.has_value());
   REQUIRE(room_after_first_leave->get().members.size() == 1);
-  REQUIRE(room_after_first_leave->get().members.count("user-1") == 1);
+  REQUIRE(has_member(room_after_first_leave->get().members, "user-1"));
 
   manager.leaveRoom({ .room_name = room_name, .user_uuid = "user-1" });
 

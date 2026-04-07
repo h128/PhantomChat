@@ -12,13 +12,29 @@ inline std::string utc_now_iso()
 
 namespace phantomchat::contracts {
 
+void to_json(nlohmann::json &j, const Member &member)
+{
+  j = nlohmann::json{
+    { "user_uuid", member.user_uuid }, { "avatar_id", member.avatar_id }, { "display_name", member.display_name }
+  };
+}
+
+void from_json(const nlohmann::json &j, Member &member)
+{
+  member.user_uuid = j.at("user_uuid").get<std::string>();
+  member.avatar_id = j.value("avatar_id", static_cast<int16_t>(0));
+  member.display_name = j.value("display_name", std::string{});
+}
+
 void to_json(nlohmann::json &j, const JoinOrCreateRoomRequest &request)
 {
   j = nlohmann::json{ { "request_uuid", request.request_uuid },
     { "user_uuid", request.user_uuid },
     { "command", static_cast<int>(request.command) },
     { "room_name", request.room_name },
-    { "public_key", request.public_key } };
+    { "public_key", request.public_key },
+    { "avatar_id", request.avatar_id },
+    { "display_name", request.display_name } };
 }
 
 void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
@@ -28,6 +44,8 @@ void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
   request.command = static_cast<Command>(j.at("command").get<int>());
   request.room_name = j.at("room_name").get<std::string>();
   request.public_key = j.at("public_key").get<std::string>();
+  request.avatar_id = j.value("avatar_id", static_cast<int16_t>(0));
+  request.display_name = j.value("display_name", std::string{});
 }
 
 void to_json(nlohmann::json &j, const SendMessageRequest &request)
@@ -176,6 +194,8 @@ void to_json(nlohmann::json &j, const UserEnteredRoomEvent &event)
   j = nlohmann::json{ { "event_name", event.event_name },
     { "room_name", event.room_name },
     { "user_uuid", event.user_uuid },
+    { "avatar_id", event.avatar_id },
+    { "display_name", event.display_name },
     { "timestamp", utc_now_iso() } };
 }
 

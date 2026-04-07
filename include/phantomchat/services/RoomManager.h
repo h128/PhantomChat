@@ -3,12 +3,13 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <phantomchat/contracts/Member.h>
 #include <phantomchat/phantom_core_export.hpp>
 #include <phantomchat/services/CryptoRoom.h>
 #include <shared_mutex>
+#include <span>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace phantomchat::services {
@@ -17,7 +18,7 @@ struct PHANTOM_CORE_EXPORT Room
   std::string room_name;
   std::string room_key;
   crypto_room::KeyPair server_key_pair;// hex-encoded
-  std::unordered_set<std::string> members;// list of user_uuids
+  std::vector<contracts::Member> members;
   std::string created_by;// user_uuid who created the room
 };
 
@@ -29,13 +30,15 @@ public:
     bool room_created = false;// true if new room was created, false if existing room
     std::string room_key;
     crypto_room::KeyPair server_key_pair;// hex-encoded server key pair for this room
-    std::unordered_set<std::string> members;// list of user_uuids
+    std::span<const contracts::Member> members;
   };
 
   struct RoomArgs
   {
     std::string room_name;
     std::string user_uuid;
+    int16_t avatar_id = 0;
+    std::string display_name{ "" };
   };
 
 

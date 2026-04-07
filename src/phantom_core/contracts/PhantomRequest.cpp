@@ -12,6 +12,7 @@ using phantomchat::utils::trim;
 void JoinOrCreateRoomRequest::validate()
 {
   trim(room_name);
+  trim(display_name);
 
   if (user_uuid.size() > 64) { throw std::invalid_argument("user_uuid exceeds maximum length of 64"); }
   if (!is_safe(user_uuid)) {
@@ -29,6 +30,8 @@ void JoinOrCreateRoomRequest::validate()
   if (!is_valid_hex(public_key, PUBLICKEYBYTES)) {
     throw std::invalid_argument("public_key must be a valid 32-byte hex-encoded key");
   }
+
+  if (display_name.size() > 64) { throw std::invalid_argument("display_name exceeds maximum length of 64"); }
 }
 
 void SendMessageRequest::validate()

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <phantomchat/phantom_core_export.hpp>
@@ -40,6 +41,8 @@ public:
   std::string user_uuid;
   std::string room_name;
   std::string public_key;
+  int16_t avatar_id = 0;
+  std::string display_name;
 
   void validate() override;
 };
