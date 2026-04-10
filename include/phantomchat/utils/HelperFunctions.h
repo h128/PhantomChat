@@ -8,8 +8,8 @@ namespace phantomchat::utils {
 std::size_t str_to_long(std::string_view sv);
 std::string url_decode(std::string_view sv);
 void trim(std::string &s);
-bool is_safe(const std::string &value);
-bool is_valid_hex(const std::string &value, std::size_t expected_bytes);
+bool is_safe(std::string_view sv);
+bool is_valid_hex(std::string_view sv, std::size_t expected_bytes);
 
 }// namespace phantomchat::utils
 #endif

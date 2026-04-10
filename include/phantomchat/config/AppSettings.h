@@ -4,6 +4,10 @@
 namespace phantomchat::config {
 struct AppSettings
 {
+private:
+  AppSettings() = default;
+
+public:
   int listen_port = 8080;
   std::vector<std::string> ice_servers;
   std::string ssl_certificate;

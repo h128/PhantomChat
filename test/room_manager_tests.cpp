@@ -13,7 +13,7 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
 {
   using phantomchat::services::RoomManager;
 
-  RoomManager manager;
+  auto &manager = phantomchat::services::RoomManager::getInstance();
   const std::string room_name = "room-manager-alpha";
 
   const RoomManager::RoomArgs args{ .room_name = room_name, .user_uuid = "user-1" };
@@ -43,7 +43,7 @@ TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-mana
 {
   using phantomchat::services::RoomManager;
 
-  RoomManager manager;
+  auto &manager = RoomManager::getInstance();
   const std::string room_name = "room-manager-beta";
 
   const auto first = manager.joinOrCreateRoom({ .room_name = room_name, .user_uuid = "user-1" });
@@ -70,7 +70,7 @@ TEST_CASE("leaveRoom removes member and deletes empty room", "[room-manager]")
 {
   using phantomchat::services::RoomManager;
 
-  RoomManager manager;
+  auto &manager = RoomManager::getInstance();
   const std::string room_name = "room-manager-gamma";
 
   manager.joinOrCreateRoom({ .room_name = room_name, .user_uuid = "user-1" });
