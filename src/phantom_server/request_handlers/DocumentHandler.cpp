@@ -6,7 +6,7 @@
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/utils/HelperFunctions.h>
 
-#define MAX_UPLOAD_SIZE_BYTES (100 * 1024 * 1024)// 100 MB
+static constexpr std::size_t max_upload_size_bytes = 100ULL * 1024 * 1024;
 
 namespace phantomchat::handlers {
 
@@ -26,13 +26,13 @@ void handleUploadDocument(uWS::HttpResponse<SSL> *res,
 
   // 2. Initial size check (if header exists)
   auto content_length = str_to_long(req->getHeader("content-length"));
-  if (content_length <= 0) {
+  if (content_length == 0) {
     res->writeStatus("400 Bad Request");
     phantomchat::cors::writeHeaders(res, req);
     res->end("Invalid Content-Length");
     return;
   }
-  if (content_length > MAX_UPLOAD_SIZE_BYTES) {
+  if (content_length > max_upload_size_bytes) {
     res->writeStatus("413 Payload Too Large");
     phantomchat::cors::writeHeaders(res, req);
     res->end();
@@ -58,7 +58,8 @@ void handleUploadDocument(uWS::HttpResponse<SSL> *res,
   }
 
   // 4. Prepare for file upload
-  auto upload_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / room_name / safe_file_name;
+  auto upload_path =
+    std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / room_name / safe_file_name;
   std::filesystem::create_directories(upload_path.parent_path());
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
@@ -110,7 +111,8 @@ void handleDownloadDocument(uWS::HttpResponse<SSL> *res,
   }
 
   // 3. Prepare for file download
-  auto download_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / safe_room_name / safe_file_name;
+  auto download_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path)
+                       / safe_room_name / safe_file_name;
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
   auto file_context =

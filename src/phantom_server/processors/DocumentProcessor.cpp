@@ -1,4 +1,5 @@
 #include "../headers/DocumentProcessor.h"
+#include "../headers/ChunkedResponse.h"
 #include "../headers/CorsHelper.h"
 #include <algorithm>
 #include <chrono>
@@ -65,8 +66,6 @@ template<bool SSL>
 std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
 {
-  static constexpr std::size_t chunk_size_bytes = 64U * 1024U;
-
   auto worker_loop = [&task_queue, app] {
     while (backgroundTasksRunning.load()) {
       DownloadTask<SSL> task;
@@ -109,44 +108,8 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
           std::string just_filename = std::filesystem::path(filename).filename().string();
 
           res->writeHeader("Content-Disposition", "attachment; filename=\"" + just_filename + "\"");
-          res->writeHeader("Transfer-Encoding", "chunked");
 
-          auto offset = std::make_shared<std::size_t>(0U);
-          auto finished = std::make_shared<bool>(false);
-
-          res->onAborted([bytes, finished]() {
-            *finished = true;
-            bytes->clear();
-            bytes->shrink_to_fit();
-          });
-
-          res->onWritable([res, bytes, offset, finished](std::uintmax_t) mutable {
-            if (*finished) { return false; }
-            while (*offset < bytes->size()) {
-              const auto remaining = bytes->size() - *offset;
-              const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
-              const auto ok = res->write(std::string_view(bytes->data() + *offset, chunk_size));
-              *offset += chunk_size;
-              if (!ok) { return true; }
-            }
-            *finished = true;
-            res->end();
-            return false;// Stop writable events once done
-          });
-
-          // Initial write attempt
-          while (*offset < bytes->size()) {
-            const auto remaining = bytes->size() - *offset;
-            const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
-            const auto ok = res->write(std::string_view(bytes->data() + *offset, chunk_size));
-            *offset += chunk_size;
-            // If write returns false, wait for onWritable to continue sending(backpressure mode is active)
-            if (!ok) { break; }
-          }
-          if (*offset >= bytes->size() && !*finished) {
-            *finished = true;
-            res->end();
-          }
+          phantomchat::http::sendChunked(res, std::const_pointer_cast<const std::vector<char>>(bytes));
         });
     }
   };

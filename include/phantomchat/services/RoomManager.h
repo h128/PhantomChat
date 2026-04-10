@@ -24,6 +24,9 @@ struct PHANTOM_CORE_EXPORT Room
 
 class PHANTOM_CORE_EXPORT RoomManager
 {
+private:
+  RoomManager() = default;
+
 public:
   struct JoinOrCreateResult
   {
@@ -42,7 +45,6 @@ public:
   };
 
 
-  RoomManager() = default;
   ~RoomManager() = default;
 
   static RoomManager &getInstance()

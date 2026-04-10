@@ -1,4 +1,5 @@
 #include "../headers/StaticFileHandler.h"
+#include "../headers/ChunkedResponse.h"
 #include "../headers/CorsHelper.h"
 
 #include <algorithm>
@@ -115,38 +116,9 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
     return;
   }
 
-  res->writeHeader("Transfer-Encoding", "chunked");
-
-  auto offset = std::make_shared<std::size_t>(0U);
-  auto finished = std::make_shared<bool>(false);
-
-  res->onAborted([finished] { *finished = true; });
-
-  res->onWritable([res, &bytes, offset, finished](std::uintmax_t) mutable {
-    if (*finished) { return false; }
-    while (*offset < bytes.size()) {
-      const auto remaining = bytes.size() - *offset;
-      const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
-      const auto ok = res->write(std::string_view(bytes.data() + *offset, chunk_size));
-      *offset += chunk_size;
-      if (!ok) { return true; }
-    }
-    *finished = true;
-    res->end();
-    return false;
-  });
-
-  while (*offset < bytes.size()) {
-    const auto remaining = bytes.size() - *offset;
-    const auto chunk_size = std::min<std::size_t>(chunk_size_bytes, remaining);
-    const auto ok = res->write(std::string_view(bytes.data() + *offset, chunk_size));
-    *offset += chunk_size;
-    if (!ok) { break; }
-  }
-  if (*offset >= bytes.size() && !*finished) {
-    *finished = true;
-    res->end();
-  }
+  // Aliasing shared_ptr: cache data outlives the request, so no ownership needed
+  auto bytes_ptr = std::shared_ptr<const std::vector<char>>(std::shared_ptr<void>(), &bytes);
+  phantomchat::http::sendChunked(res, std::move(bytes_ptr), chunk_size_bytes);
 }
 
 }// namespace phantomchat::handlers

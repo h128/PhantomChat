@@ -52,7 +52,7 @@ std::optional<std::reference_wrapper<const Room>> RoomManager::getRoom(const std
 bool RoomManager::roomExists(const std::string &room_name) const
 {
   std::shared_lock<std::shared_mutex> lock(rooms_mutex);
-  return rooms.find(room_name) != rooms.end();
+  return rooms.contains(room_name);
 }
 
 bool RoomManager::isUserMemberOfRoom(const RoomArgs &args) const

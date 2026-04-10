@@ -48,14 +48,14 @@ void trim(std::string &s)
   s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) { return !std::isspace(c); }).base(), s.end());
 }
 
-bool is_safe(const std::string &value)
+bool is_safe(std::string_view value)
 {
   if (value.empty()) { return false; }
   return std::all_of(
     value.begin(), value.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; });
 }
 
-bool is_valid_hex(const std::string &value, std::size_t expected_bytes)
+bool is_valid_hex(std::string_view value, std::size_t expected_bytes)
 {
   if (value.size() != expected_bytes * 2) { return false; }
   return std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isxdigit(c); });
