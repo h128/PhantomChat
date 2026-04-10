@@ -1,5 +1,5 @@
 #include "../headers/SocketRequestHandler.h"
-
+#include "../headers/ChatHistory.hpp"
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
@@ -17,7 +17,11 @@ namespace {
   template<typename WS_TYPE, typename EventType>
   void dispatch_event(WS_TYPE *ws, const EventType &event, const std::string &topic)
   {
-    ws->publish(topic, nlohmann::json(event).dump(), uWS::OpCode::TEXT);
+    // Publish event to websocket
+    const auto event_json = json(event).dump();
+    ws->publish(topic, event_json, uWS::OpCode::TEXT);
+    // Store event in chat history
+    std::thread([topic, event_json] { phantomchat::utils::append_event_to_history(topic, event_json); }).detach();
   }
 }// anonymous namespace
 
