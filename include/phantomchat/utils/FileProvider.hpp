@@ -31,6 +31,7 @@ private:
     { ".css", "text/css; charset=utf-8" },
     { ".js", "application/javascript; charset=utf-8" },
     { ".json", "application/json; charset=utf-8" },
+    { ".ndjson", "application/x-ndjson; charset=utf-8" },
     { ".svg", "image/svg+xml" },
     { ".png", "image/png" },
     { ".jpg", "image/jpeg" },
