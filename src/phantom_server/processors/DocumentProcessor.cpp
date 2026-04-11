@@ -12,9 +12,10 @@ namespace phantomchat::processors {
 
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  EventLogQueue &event_logger,
   moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
 {
-  auto worker_loop = [&task_queue, app] {
+  auto worker_loop = [&task_queue, &event_logger, app] {
     while (backgroundTasksRunning.load()) {
       UploadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
@@ -43,7 +44,7 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
 
       if (context_ptr->aborted) continue;
 
-      app->getLoop()->defer([app, res = task.res, context_ptr] {
+      app->getLoop()->defer([app, res = task.res, &event_logger, context_ptr] {
         res->writeStatus("200 OK");
         phantomchat::cors::writeHeaders(res, context_ptr->cors_origin);
         res->end("File uploaded successfully");
@@ -53,8 +54,10 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
           context_ptr->room_name,
           context_ptr->user_uuid,
           context_ptr->is_poster);
+        const auto json_event = json(event).dump();
+        app->publish(event.room_name, json_event, uWS::OpCode::TEXT);
 
-        app->publish(event.room_name, json(event).dump(), uWS::OpCode::TEXT);
+        event_logger.enqueue({ .room_name = context_ptr->room_name, .json_event = json_event });
       });
     }
   };
@@ -165,12 +168,14 @@ std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<Ev
 }// namespace phantomchat::processors
 
 template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<false>(uWS::App *,
+  EventLogQueue &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
 
 template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<false>(uWS::App *,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
 
 template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<true>(uWS::SSLApp *,
+  EventLogQueue &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
 
 template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<true>(uWS::SSLApp *,

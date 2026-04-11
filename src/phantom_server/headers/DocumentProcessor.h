@@ -56,6 +56,7 @@ static inline std::atomic<bool> backgroundTasksRunning{ true };
 
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue);
 
 template<bool SSL>

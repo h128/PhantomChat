@@ -103,7 +103,7 @@ int main()
         }
         uWS::TemplatedApp<SSL> app(options);
 
-        auto uploadThread = uploadDocumentBackgroundProcess(&app, upload_task_queue);
+        auto uploadThread = uploadDocumentBackgroundProcess(&app, event_logger, upload_task_queue);
         auto downloadThread = downloadDocumentBackgroundProcess(&app, download_task_queue);
 
         setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
