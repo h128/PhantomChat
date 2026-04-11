@@ -117,6 +117,51 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   return std::jthread(worker_loop);
 }
 
+
+namespace {
+  std::unordered_map<std::string, std::ofstream> files{};
+  std::ofstream &get_room_file(const std::string &room_name) { return files[room_name]; }
+  void release_room_file(const std::string &room_name)
+  {
+    auto &file = get_room_file(room_name);
+    file.close();
+    files.erase(room_name);
+  }
+
+}// namespace
+
+
+std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<EventLogTask> &task_queue)
+{
+  auto worker_loop = [&task_queue] {
+    while (backgroundTasksRunning.load()) {
+      EventLogTask task;
+      if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
+
+      if (task.delete_room_on_empty) {
+        release_room_file(task.room_name);
+        continue;
+      }
+
+      namespace fs = std::filesystem;
+      namespace cfg = phantomchat::config;
+      const fs::path storage_dir = fs::path(cfg::AppSettings::getInstance().upload_path) / task.room_name;
+      const fs::path file_path = storage_dir / (task.room_name + ".ndjson");
+      // file should be opened till the room is deleted, so we can just keep it open and append to it
+      auto &file = get_room_file(task.room_name);
+      if (!file.is_open() || !fs::exists(file_path)) {
+        fs::create_directories(storage_dir);
+        file.open(file_path, std::ios::out | std::ios::app);
+      }
+      if (!file) { continue; }
+      file << task.json_event << '\n';
+      file.flush();
+    }
+  };
+
+  return std::jthread(worker_loop);
+}
+
 }// namespace phantomchat::processors
 
 template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<false>(uWS::App *,
