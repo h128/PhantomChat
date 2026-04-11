@@ -44,14 +44,26 @@ template<bool SSL = false> struct DownloadTask
   std::weak_ptr<FileContext> file_context;
 };
 
+struct EventLogTask
+{
+  std::string room_name{};
+  std::string json_event{};
+  bool delete_room_on_empty = false;
+};
+
+
 static inline std::atomic<bool> backgroundTasksRunning{ true };
 
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue);
 
 template<bool SSL>
 std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue);
 
+std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<EventLogTask> &task_queue);
+
 }// namespace phantomchat::processors
+typedef moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> EventLogQueue;

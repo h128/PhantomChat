@@ -45,16 +45,17 @@ void setup_rest(uWS::TemplatedApp<SSL> &app,
     .get("/*", handle_static_file_with_cache);
 }
 
-template<typename APP_TYPE> void setup_websocket(APP_TYPE &app, phantomchat::services::RoomManager &room_manager)
+template<typename APP_TYPE>
+void setup_websocket(APP_TYPE &app, phantomchat::services::RoomManager &room_manager, EventLogQueue &event_logger)
 {
   app.template ws<phantomchat::contracts::PerSocketData>("/room",
     { .open = [](auto *) {},
-      .message = [&room_manager](auto *ws,
+      .message = [&room_manager, &event_logger](auto *ws,
                    std::string_view msg,
-                   uWS::OpCode) { phantomchat::handlers::handleMessage(ws, room_manager, msg); },
-      .close = [&room_manager, &app](auto *ws,
+                   uWS::OpCode) { phantomchat::handlers::handleMessage(ws, room_manager, event_logger, msg); },
+      .close = [&room_manager, &event_logger, &app](auto *ws,
                  int,
-                 std::string_view) { phantomchat::handlers::handleLeaveRoom(ws, room_manager, &app); } });
+                 std::string_view) { phantomchat::handlers::handleLeaveRoom(ws, room_manager, event_logger, &app); } });
 }
 
 template<typename APP_TYPE> void setup_listen(APP_TYPE &app, const phantomchat::config::AppSettings &settings)
@@ -87,6 +88,9 @@ int main()
   auto run_workers = [&]<bool SSL>(std::bool_constant<SSL>) {
     moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> upload_task_queue;
     moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> download_task_queue;
+    moodycamel::BlockingConcurrentQueue<EventLogTask> event_logger;
+
+    auto eventLoggerThread = eventLoggerBackgroundProcess(event_logger);
 
     const int worker_thread_count = std::max(1, settings.worker_threads);
     std::vector<std::jthread> worker_threads;
@@ -99,11 +103,11 @@ int main()
         }
         uWS::TemplatedApp<SSL> app(options);
 
-        auto uploadThread = uploadDocumentBackgroundProcess(&app, upload_task_queue);
+        auto uploadThread = uploadDocumentBackgroundProcess(&app, event_logger, upload_task_queue);
         auto downloadThread = downloadDocumentBackgroundProcess(&app, download_task_queue);
 
         setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
-        setup_websocket(app, room_manager);
+        setup_websocket(app, room_manager, event_logger);
         setup_listen(app, settings);
 
         app.run();
