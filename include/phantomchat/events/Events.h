@@ -15,6 +15,13 @@ public:
   explicit EventBase(std::string_view event_name_) : event_name(event_name_) {}
   virtual ~EventBase() = default;
 
+  // Explicitly restore move and copy operations
+  EventBase() = default;
+  EventBase(const EventBase &) = default;
+  EventBase &operator=(const EventBase &) = default;
+  EventBase(EventBase &&) = default;
+  EventBase &operator=(EventBase &&) = default;
+
   std::string_view event_name;
 };
 
