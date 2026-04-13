@@ -16,6 +16,13 @@ class PHANTOM_CORE_EXPORT PhantomResponseBase
 public:
   virtual ~PhantomResponseBase() = default;
 
+  // Restore Move/Copy
+  PhantomResponseBase() = default;
+  PhantomResponseBase(const PhantomResponseBase &) = default;
+  PhantomResponseBase &operator=(const PhantomResponseBase &) = default;
+  PhantomResponseBase(PhantomResponseBase &&) = default;
+  PhantomResponseBase &operator=(PhantomResponseBase &&) = default;
+
   std::string request_uuid;
   ResponseStatus status;
   std::string message;

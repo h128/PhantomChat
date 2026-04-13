@@ -25,6 +25,13 @@ class PHANTOM_CORE_EXPORT PhantomRequestBase
 public:
   virtual ~PhantomRequestBase() = default;
 
+  // Restore the Move/Copy operations
+  PhantomRequestBase() = default;
+  PhantomRequestBase(const PhantomRequestBase &) = default;
+  PhantomRequestBase &operator=(const PhantomRequestBase &) = default;
+  PhantomRequestBase(PhantomRequestBase &&) = default;
+  PhantomRequestBase &operator=(PhantomRequestBase &&) = default;
+
   std::string request_uuid;
   Command command;
 
