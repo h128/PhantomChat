@@ -140,20 +140,18 @@ void to_json(nlohmann::json &j, const SignalCallRequest &request)
 {
   j = nlohmann::json{ { "request_uuid", request.request_uuid },
     { "command", static_cast<int>(request.command) },
-    { "action", static_cast<int>(request.action) } };
-
-  std::visit(
-    [&j](auto &&arg) {
-      using T = std::decay_t<decltype(arg)>;
-      if constexpr (std::is_same_v<T, SessionDescription>) {
-        j["data"] = arg;
-      } else if constexpr (std::is_same_v<T, IceCandidate>) {
-        j["data"] = arg;
-      } else {
-        j["data"] = nullptr;
-      }
-    },
-    request.data);
+    { "action", static_cast<int>(request.action) },
+    {
+      "data",
+      std::visit(
+        [](auto &&arg) -> nlohmann::json {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, SessionDescription> || std::is_same_v<T, IceCandidate>) return arg;
+          return nullptr;
+        },
+        request.data)
+      //
+    } };
 }
 
 void from_json(const nlohmann::json &j, SignalCallRequest &request)
@@ -225,24 +223,18 @@ void to_json(nlohmann::json &j, const FileUploadedEvent &event)
 
 void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
 {
-  nlohmann::json data_json;
-  std::visit(
-    [&data_json](auto &&arg) {
-      using T = std::decay_t<decltype(arg)>;
-      if constexpr (std::is_same_v<T, contracts::SessionDescription>) {
-        data_json = arg;
-      } else if constexpr (std::is_same_v<T, contracts::IceCandidate>) {
-        data_json = arg;
-      } else {
-        data_json = nullptr;
-      }
-    },
-    event.signaling_data);
-
   j = nlohmann::json{ { "event_name", event.event_name },
     { "action", static_cast<int>(event.action) },
     { "sender_uuid", event.sender_uuid },
-    { "data", data_json },
+    { "data",
+      std::visit(
+        [](auto &&arg) -> nlohmann::json {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, contracts::SessionDescription> || std::is_same_v<T, contracts::IceCandidate>)
+            return arg;
+          return nullptr;
+        },
+        event.signaling_data) },
     { "timestamp", utc_now_iso() } };
 }
 
