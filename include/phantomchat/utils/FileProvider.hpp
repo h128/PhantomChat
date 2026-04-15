@@ -24,7 +24,7 @@ public:
   bool exists(const std::string &path) const override;
 
 private:
-  static const inline std::unordered_map<std::string, std::string_view> mime_types = {
+  static const inline std::unordered_map<std::string_view, std::string_view> mime_types = {
     { ".html", "text/html; charset=utf-8" },
     { ".htm", "text/html; charset=utf-8" },
     { ".txt", "text/plain; charset=utf-8" },

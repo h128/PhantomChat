@@ -62,16 +62,12 @@ public:
 
   JoinOrCreateResult joinOrCreateRoom(const RoomArgs &args);
 
-  std::optional<std::reference_wrapper<const Room>> getRoom(const std::string &room_name) const;
-
   bool roomExists(const std::string &room_name) const;
 
   bool isUserMemberOfRoom(const RoomArgs &args) const;
 
   enum class LeaveRoomResult { Success, RoomNotFound, UserNotInRoom, RoomEmptyAndDeleted };
   LeaveRoomResult leaveRoom(const RoomArgs &args);
-
-  std::vector<Room> getAllRooms() const;
 
 private:
   mutable std::shared_mutex rooms_mutex;

@@ -2,13 +2,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <phantomchat/services/RoomManager.h>
 
-namespace {
-bool has_member(const std::vector<phantomchat::contracts::Member> &members, const std::string &uuid)
-{
-  return std::ranges::any_of(members, [&](const auto &m) { return m.user_uuid == uuid; });
-}
-}// namespace
-
 TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
 {
   using phantomchat::services::RoomManager;
@@ -26,17 +19,8 @@ TEST_CASE("joinOrCreateRoom creates room and seeds creator", "[room-manager]")
   REQUIRE_FALSE(result.server_key_pair.secret_key.empty());
   REQUIRE(manager.roomExists(room_name));
 
-  const auto room_opt = manager.getRoom(room_name);
-  REQUIRE(room_opt.has_value());
-
-  const auto &room = room_opt->get();
-  REQUIRE(room.room_name == room_name);
-  REQUIRE(room.created_by == "user-1");
-  REQUIRE(room.room_key == result.room_key);
-  REQUIRE_FALSE(room.server_key_pair.public_key.empty());
-  REQUIRE_FALSE(room.server_key_pair.secret_key.empty());
-  REQUIRE(room.members.size() == 1);
-  REQUIRE(has_member(room.members, "user-1"));
+  // Can't access room directly, so check via public API
+  REQUIRE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-1" }));
 }
 
 TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-manager]")
@@ -57,13 +41,9 @@ TEST_CASE("joinOrCreateRoom adds new members and avoids duplicates", "[room-mana
   REQUIRE(second.room_key == duplicate.room_key);
   REQUIRE(first.server_key_pair.public_key == second.server_key_pair.public_key);
 
-  const auto room_opt = manager.getRoom(room_name);
-  REQUIRE(room_opt.has_value());
-
-  const auto &members = room_opt->get().members;
-  REQUIRE(members.size() == 2);
-  REQUIRE(has_member(members, "user-1"));
-  REQUIRE(has_member(members, "user-2"));
+  // Can't access room directly, so check via public API
+  REQUIRE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-1" }));
+  REQUIRE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-2" }));
 }
 
 TEST_CASE("leaveRoom removes member and deletes empty room", "[room-manager]")
@@ -79,13 +59,14 @@ TEST_CASE("leaveRoom removes member and deletes empty room", "[room-manager]")
   manager.leaveRoom({ .room_name = room_name, .user_uuid = "user-2" });
 
   REQUIRE(manager.roomExists(room_name));
-  const auto room_after_first_leave = manager.getRoom(room_name);
-  REQUIRE(room_after_first_leave.has_value());
-  REQUIRE(room_after_first_leave->get().members.size() == 1);
-  REQUIRE(has_member(room_after_first_leave->get().members, "user-1"));
+  // After first leave, user-1 should still be a member, user-2 should not
+  REQUIRE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-1" }));
+  REQUIRE_FALSE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-2" }));
 
   manager.leaveRoom({ .room_name = room_name, .user_uuid = "user-1" });
 
   REQUIRE_FALSE(manager.roomExists(room_name));
-  REQUIRE_FALSE(manager.getRoom(room_name).has_value());
+  // Room should not exist, so neither user should be a member
+  REQUIRE_FALSE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-1" }));
+  REQUIRE_FALSE(manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = "user-2" }));
 }
