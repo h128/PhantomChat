@@ -2,7 +2,9 @@
 #include "headers/DocumentHandler.h"
 #include "headers/SocketRequestHandler.h"
 #include "headers/StaticFileHandler.h"
+#include "internal_use_only/config.hpp"
 #include <App.h>
+#include <CLI/CLI.hpp>
 #include <fmt/core.h>
 #include <fmt/std.h>
 #include <phantomchat/config/AppSettings.h>
@@ -69,8 +71,14 @@ template<typename APP_TYPE> void setup_listen(APP_TYPE &app, const phantomchat::
   });
 }
 
-int main()
+int main(int argc, char **argv)
 {
+  CLI::App cli_app(
+    "PhantomChat, a lightweight messaging server built with uWebSockets, C++20, and focus on simplicity and "
+    "performance.");
+  cli_app.set_version_flag("--version", std::string(phantomchat::cmake::project_version));
+  CLI11_PARSE(cli_app, argc, argv);
+
   phantomchat::services::crypto_room::init();
 
   fmt::print("Hello, {}...\n", "PhantomServer");
