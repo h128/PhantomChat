@@ -11,6 +11,11 @@ function(phantomchat_setup_dependencies)
     cpmaddpackage("gh:fmtlib/fmt#12.1.0")
   endif()
 
+  if(NOT TARGET CLI11::CLI11)
+    cpmaddpackage("gh:CLIUtils/CLI11#v2.6.2")
+  endif()
+  
+
   if(NOT TARGET nlohmann_json::nlohmann_json)
     CPMAddPackage(
     NAME nlohmann_json

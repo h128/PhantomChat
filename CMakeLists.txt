@@ -21,7 +21,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(
   phantomchat
   VERSION 0.0.2
-  DESCRIPTION ""
+  DESCRIPTION "PhantomChat, a lightweight messaging server built with uWebSockets, C++20, and focus on simplicity and performance."
   HOMEPAGE_URL "https://github.com/h128/PhantomChat"
   LANGUAGES CXX C)
 

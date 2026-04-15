@@ -16,6 +16,7 @@ target_link_system_libraries(
   PRIVATE
           fmt::fmt
           spdlog::spdlog
+          CLI11::CLI11
           nlohmann_json::nlohmann_json
           uWS
           concurrentqueue

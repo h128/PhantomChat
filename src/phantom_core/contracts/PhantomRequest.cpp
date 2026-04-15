@@ -36,8 +36,6 @@ void JoinOrCreateRoomRequest::validate()
 
 void SendMessageRequest::validate()
 {
-  trim(message);
-
   if (message.empty()) { throw std::invalid_argument("message cannot be empty"); }
   if (message.size() > 1024) { throw std::invalid_argument("message exceeds maximum length of 1024"); }
 }
