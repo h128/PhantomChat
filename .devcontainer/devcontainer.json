@@ -19,6 +19,9 @@
 		"--security-opt",
 		"seccomp=unconfined"
 	],
+	"appPort": [
+		"8080:8080"
+	],
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"cmake.configureOnOpen": true,
