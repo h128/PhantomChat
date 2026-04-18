@@ -2,6 +2,23 @@
 #include <string>
 #include <vector>
 namespace phantomchat::config {
+
+struct FirebaseSettings
+{
+  std::string type;
+  std::string scope;
+  std::string project_id;
+  std::string private_key_id;
+  std::string private_key;
+  std::string client_email;
+  std::string client_id;
+  std::string auth_uri;
+  std::string token_uri;
+  std::string auth_provider_x509_cert_url;
+  std::string client_x509_cert_url;
+  std::string universe_domain;
+};
+
 struct AppSettings
 {
 private:
@@ -17,6 +34,7 @@ public:
   std::string web_root_path;
   std::string upload_path;
   std::vector<std::string> cors_allowed_origins = { "*" };
+  FirebaseSettings firebase_settings;
 
   void load_from_file(const std::string &filename);
 

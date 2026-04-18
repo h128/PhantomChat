@@ -48,6 +48,7 @@ void to_json(nlohmann::json &j, const SignalCallRelayEvent &event);
 
 
 namespace phantomchat::config {
-void from_json(const nlohmann::json &j, AppSettings &settings);
 void to_json(nlohmann::json &j, const AppSettings &settings);
+void from_json(const nlohmann::json &j, FirebaseSettings &settings);
+void from_json(const nlohmann::json &j, AppSettings &settings);
 }// namespace phantomchat::config

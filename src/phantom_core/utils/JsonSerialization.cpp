@@ -255,6 +255,22 @@ void to_json(nlohmann::json &j, const AppSettings &settings)
     { "cors_allowed_origins", settings.cors_allowed_origins } };
 }
 
+void from_json(const nlohmann::json &j, FirebaseSettings &fb)
+{
+  fb.type = j.at("type").get<std::string>();
+  fb.scope = j.at("scope").get<std::string>();
+  fb.project_id = j.at("project_id").get<std::string>();
+  fb.private_key_id = j.at("private_key_id").get<std::string>();
+  fb.private_key = j.at("private_key").get<std::string>();
+  fb.client_email = j.at("client_email").get<std::string>();
+  fb.client_id = j.at("client_id").get<std::string>();
+  fb.auth_uri = j.at("auth_uri").get<std::string>();
+  fb.token_uri = j.at("token_uri").get<std::string>();
+  fb.auth_provider_x509_cert_url = j.at("auth_provider_x509_cert_url").get<std::string>();
+  fb.client_x509_cert_url = j.at("client_x509_cert_url").get<std::string>();
+  fb.universe_domain = j.at("universe_domain").get<std::string>();
+}
+
 void from_json(const nlohmann::json &j, AppSettings &settings)
 {
   settings.listen_port = j.at("listen_port").get<int>();
@@ -266,5 +282,6 @@ void from_json(const nlohmann::json &j, AppSettings &settings)
   settings.web_root_path = j.at("web_root_path").get<std::string>();
   settings.upload_path = j.at("upload_path").get<std::string>();
   settings.cors_allowed_origins = j.at("cors_allowed_origins").get<std::vector<std::string>>();
+  settings.firebase_settings = j.at("firebase_settings").get<FirebaseSettings>();
 }
 }// namespace phantomchat::config

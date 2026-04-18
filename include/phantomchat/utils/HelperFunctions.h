@@ -6,6 +6,7 @@
 namespace phantomchat::utils {
 
 std::size_t str_to_long(std::string_view sv);
+std::string base64url_encode(std::string_view s);
 std::string url_decode(std::string_view sv);
 void trim(std::string &s);
 bool is_safe(std::string_view sv);

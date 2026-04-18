@@ -14,8 +14,8 @@ function(phantomchat_setup_dependencies)
   if(NOT TARGET CLI11::CLI11)
     cpmaddpackage("gh:CLIUtils/CLI11#v2.6.2")
   endif()
-  
 
+ 
   if(NOT TARGET nlohmann_json::nlohmann_json)
     CPMAddPackage(
     NAME nlohmann_json
@@ -115,6 +115,27 @@ function(phantomchat_setup_dependencies)
       NAME concurrentqueue
       GITHUB_REPOSITORY cameron314/concurrentqueue
       VERSION 1.0.4
+    )
+  endif()
+
+  if(NOT TARGET CURL::libcurl)
+    set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
+    set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTING  OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_TESTS ON CACHE BOOL "" FORCE)
+    set(HTTP_ONLY ON CACHE BOOL "" FORCE)     
+    set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE) 
+    set(CURL_ZLIB             OFF CACHE BOOL "" FORCE)
+    set(CMAKE_DISABLE_FIND_PACKAGE_ZLIB TRUE CACHE BOOL "" FORCE)
+
+
+    CPMAddPackage(
+      NAME curl
+      GITHUB_REPOSITORY curl/curl
+      GIT_TAG curl-8_19_0
+      VERSION 8.19.0
     )
   endif()
 endfunction()

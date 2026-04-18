@@ -2,6 +2,7 @@
 
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
+#include <vector>
 
 namespace phantomchat::services::crypto_room {
 
@@ -30,5 +31,7 @@ struct PHANTOM_CORE_EXPORT EncryptRoomArgs
 // Encrypt a room key using the server's key pair and the user's hex-encoded public key.
 // Returns a hex-encoded ciphertext (crypto_box_easy with zero nonce).
 PHANTOM_CORE_EXPORT std::string encryptRoomKey(const EncryptRoomArgs &args);
+
+PHANTOM_CORE_EXPORT std::vector<unsigned char> rs256_sign(std::string_view privateKey, std::string_view message);
 
 }// namespace phantomchat::services::crypto_room

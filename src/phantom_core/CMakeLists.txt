@@ -7,9 +7,11 @@ add_library(phantom_core
   contracts/PhantomRequest.cpp
   services/RoomManager.cpp
   services/CryptoRoom.cpp
+  services/Firebase.cpp
   utils/CacheFileProvider.cpp
   utils/FileProvider.cpp
-  utils/HelperFunctions.cpp)
+  utils/HelperFunctions.cpp
+  )
 
 
 
@@ -21,6 +23,8 @@ target_link_system_libraries(phantom_core PUBLIC nlohmann_json::nlohmann_json)
 target_link_system_libraries(phantom_core PUBLIC sodium)
 target_link_system_libraries(phantom_core PUBLIC myZlib)
 target_link_system_libraries(phantom_core PUBLIC fmt::fmt)
+target_link_system_libraries(phantom_core PUBLIC CURL::libcurl)
+target_link_system_libraries(phantom_core PUBLIC  OpenSSL::Crypto OpenSSL::SSL)
 
 target_include_directories(phantom_core ${WARNING_GUARD} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                                                                   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)

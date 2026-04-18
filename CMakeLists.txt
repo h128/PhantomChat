@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.28)
 
 # Disable modules support, this is broken with clang-tidy at the moment
 cmake_policy(SET CMP0155 OLD) 
@@ -9,7 +9,7 @@ cmake_policy(SET CMP0155 OLD)
 
 # Only set the cxx_standard if it is not set by someone else
 if (NOT DEFINED CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD 23)
 endif()
 
 # strongly encouraged to enable this globally to avoid conflicts between
@@ -21,7 +21,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(
   phantomchat
   VERSION 0.0.2
-  DESCRIPTION "PhantomChat, a lightweight messaging server built with uWebSockets, C++20, and focus on simplicity and performance."
+  DESCRIPTION "PhantomChat, a lightweight messaging server built with uWebSockets, C++23, and focus on simplicity and performance."
   HOMEPAGE_URL "https://github.com/h128/PhantomChat"
   LANGUAGES CXX C)
 

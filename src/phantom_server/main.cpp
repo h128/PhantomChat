@@ -74,7 +74,7 @@ template<typename APP_TYPE> void setup_listen(APP_TYPE &app, const phantomchat::
 int main(int argc, char **argv)
 {
   CLI::App cli_app(
-    "PhantomChat, a lightweight messaging server built with uWebSockets, C++20, and focus on simplicity and "
+    "PhantomChat, a lightweight messaging server built with uWebSockets, C++23, and focus on simplicity and "
     "performance.");
   cli_app.set_version_flag("--version", std::string(phantomchat::cmake::project_version));
   CLI11_PARSE(cli_app, argc, argv);

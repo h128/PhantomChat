@@ -68,7 +68,7 @@ macro(phantomchat_setup_options)
     phantomchat_ENABLE_HARDENING
     OFF)
 
-  phantomchat_supports_sanitizers()
+  # phantomchat_supports_sanitizers()
 
   if(NOT PROJECT_IS_TOP_LEVEL OR phantomchat_PACKAGING_MAINTAINER_MODE)
     option(phantomchat_ENABLE_IPO "Enable IPO/LTO" OFF)
@@ -148,7 +148,7 @@ macro(phantomchat_global_options)
     phantomchat_enable_ipo()
   endif()
 
-  phantomchat_supports_sanitizers()
+  # phantomchat_supports_sanitizers()
 
   if(phantomchat_ENABLE_HARDENING AND phantomchat_ENABLE_GLOBAL_HARDENING)
     include(cmake/Hardening.cmake)

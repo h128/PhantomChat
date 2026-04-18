@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <openssl/evp.h>
 #include <phantomchat/utils/HelperFunctions.h>
 
 namespace phantomchat::utils {
@@ -41,6 +42,30 @@ std::string url_decode(std::string_view sv)
   }
   return result;
 }
+
+std::string base64url_encode(std::string_view s)
+{
+  // EVP_EncodeBlock produces standard Base64; we rewrite the two URL-unsafe
+  // characters in place and trim trailing '=' padding.
+  std::string out(4 * ((s.size() + 2) / 3), '\0');
+  auto *out_ptr = reinterpret_cast<unsigned char *>(out.data());
+  auto *in_ptr = reinterpret_cast<const unsigned char *>(s.data());
+
+  const int written = EVP_EncodeBlock(out_ptr, in_ptr, static_cast<int>(s.size()));
+  out.resize(static_cast<std::size_t>(written));
+
+  for (char &c : out) {
+    if (c == '+')
+      c = '-';
+    else if (c == '/')
+      c = '_';
+  }
+
+  while (!out.empty() && out.back() == '=') { out.pop_back(); }
+
+  return out;
+}
+
 
 void trim(std::string &s)
 {
