@@ -14,11 +14,12 @@ using namespace phantomchat::processors;
 using namespace phantomchat::services;
 using namespace phantomchat::utils;
 
-template<bool SSL>
-void handleUploadDocument(uWS::HttpResponse<SSL> *res,
+template<typename APP_TYPE, bool SSL>
+void handleUploadDocument(APP_TYPE &app,
+  uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
   RoomManager &room_manager,
-  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
+  moodycamel::BlockingConcurrentQueue<UploadTask<APP_TYPE, SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
   std::string raw_name = url_decode(req->getParameter("filename"));
@@ -64,30 +65,32 @@ void handleUploadDocument(uWS::HttpResponse<SSL> *res,
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
   auto file_context =
-    std::make_shared<FileContext>(upload_path.string(), room_name, user_id, is_poster, resolved_origin);
+    std::make_shared<FileContext<APP_TYPE>>(app, upload_path.string(), room_name, user_id, is_poster, resolved_origin);
   auto bytes_received = std::make_shared<size_t>(0);
 
   res->onAborted([file_context]() { file_context->aborted = true; });
-  res->onData([res, file_context, bytes_received, &task_queue, content_length](std::string_view chunk, bool is_last) {
-    *bytes_received += chunk.size();
+  res->onData(
+    [&app, res, file_context, bytes_received, &task_queue, content_length](std::string_view chunk, bool is_last) {
+      *bytes_received += chunk.size();
 
-    // Hard limit check
-    if (*bytes_received > content_length) {
-      res->close();// Immediate disconnect
-      return;
-    }
+      // Hard limit check
+      if (*bytes_received > content_length) {
+        res->close();// Immediate disconnect
+        return;
+      }
 
-    task_queue.enqueue({ .res = res,
-      .file_data = std::vector<char>(chunk.begin(), chunk.end()),
-      .file_context = std::weak_ptr<FileContext>(file_context),
-      .is_last_chunk = is_last });
-  });
+      task_queue.enqueue({ .res = res,
+        .file_data = std::vector<char>(chunk.begin(), chunk.end()),
+        .file_context = std::weak_ptr<FileContext<APP_TYPE>>(file_context),
+        .is_last_chunk = is_last });
+    });
 }
 
-template<bool SSL>
-void handleDownloadDocument(uWS::HttpResponse<SSL> *res,
+template<typename APP_TYPE, bool SSL>
+void handleDownloadDocument(APP_TYPE &app,
+  uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
-  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
+  moodycamel::BlockingConcurrentQueue<DownloadTask<APP_TYPE, SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
   std::string raw_name = url_decode(req->getParameter("filename"));
@@ -115,33 +118,37 @@ void handleDownloadDocument(uWS::HttpResponse<SSL> *res,
                        / safe_room_name / safe_file_name;
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
-  auto file_context =
-    std::make_shared<FileContext>(download_path.string(), safe_room_name, "", is_poster, resolved_origin);
+  auto file_context = std::make_shared<FileContext<APP_TYPE>>(
+    app, download_path.string(), safe_room_name, "", is_poster, resolved_origin);
 
   res->onAborted([file_context]() { file_context->aborted = true; });
 
   task_queue.enqueue({
     .res = res,
-    .file_context = std::weak_ptr<FileContext>(file_context),
+    .file_context = std::weak_ptr<FileContext<APP_TYPE>>(file_context),
   });
 }
 
 }// namespace phantomchat::handlers
 
-template void phantomchat::handlers::handleUploadDocument<false>(uWS::HttpResponse<false> *,
+template void phantomchat::handlers::handleUploadDocument<uWS::App, false>(uWS::App &,
+  uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
   phantomchat::services::RoomManager &,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::App, false>> &);
 
-template void phantomchat::handlers::handleDownloadDocument<false>(uWS::HttpResponse<false> *,
+template void phantomchat::handlers::handleDownloadDocument<uWS::App, false>(uWS::App &,
+  uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::App, false>> &);
 
-template void phantomchat::handlers::handleUploadDocument<true>(uWS::HttpResponse<true> *,
+template void phantomchat::handlers::handleUploadDocument<uWS::SSLApp, true>(uWS::SSLApp &,
+  uWS::HttpResponse<true> *,
   uWS::HttpRequest *,
   phantomchat::services::RoomManager &,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::SSLApp, true>> &);
 
-template void phantomchat::handlers::handleDownloadDocument<true>(uWS::HttpResponse<true> *,
+template void phantomchat::handlers::handleDownloadDocument<uWS::SSLApp, true>(uWS::SSLApp &,
+  uWS::HttpResponse<true> *,
   uWS::HttpRequest *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<true>> &);
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::SSLApp, true>> &);
