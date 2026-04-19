@@ -10,32 +10,37 @@
 
 namespace phantomchat::handlers {
 
-template<typename WS_TYPE>
-void handleSendMessage(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSendMessage(APP_TYPE &app,
+  WS_TYPE *ws,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::SendMessageRequest *request);
 
-template<typename WS_TYPE, typename APP_TYPE>
-void handleLeaveRoom(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleLeaveRoom(APP_TYPE &app,
+  WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
-  APP_TYPE *app);
+  bool is_client_initiated_leave);
 
-template<typename WS_TYPE>
-void handleJoinOrCreateRoom(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleJoinOrCreateRoom(APP_TYPE &app,
+  WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::JoinOrCreateRoomRequest *request);
 
-template<typename WS_TYPE>
-void handleSignalCall(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSignalCall(APP_TYPE &app,
+  WS_TYPE *ws,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::SignalCallRequest *request);
 
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid);
 
-template<typename WS_TYPE>
-void handleMessage(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleMessage(APP_TYPE &app,
+  WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   std::string_view msg);

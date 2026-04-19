@@ -10,14 +10,13 @@
 
 namespace phantomchat::processors {
 
-template<bool SSL>
-std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
-  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
+template<typename APP_TYPE, bool SSL>
+std::jthread uploadDocumentBackgroundProcess(moodycamel::BlockingConcurrentQueue<UploadTask<APP_TYPE, SSL>> &task_queue,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger)
 {
-  auto worker_loop = [&task_queue, &event_logger, app](std::stop_token stop) {
+  auto worker_loop = [&task_queue, &event_logger](std::stop_token stop) {
     while (!stop.stop_requested()) {
-      UploadTask<SSL> task;
+      UploadTask<APP_TYPE, SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
       auto context_ptr = task.file_context.lock();
@@ -26,12 +25,14 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
         continue;
       }
 
+      auto &app = context_ptr->app;
+
       // Open file stream on first chunk
       if (!context_ptr->file_stream.is_open()) {
         context_ptr->file_stream.open(context_ptr->filename, std::ios::binary | std::ios::out);
         if (!context_ptr->file_stream) {
           // Failed to open file, close connection
-          app->getLoop()->defer([res = task.res] { res->close(); });
+          app.getLoop()->defer([res = task.res] { res->close(); });
           continue;
         }
       }
@@ -44,7 +45,7 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
 
       if (context_ptr->aborted) continue;
 
-      app->getLoop()->defer([app, res = task.res, &event_logger, context_ptr] {
+      app.getLoop()->defer([&app, res = task.res, &event_logger, context_ptr] {
         res->writeStatus("200 OK");
         phantomchat::cors::writeHeaders(res, context_ptr->cors_origin);
         res->end("File uploaded successfully");
@@ -55,7 +56,7 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
           context_ptr->user_uuid,
           context_ptr->is_poster);
         const auto json_event = json(event).dump();
-        app->publish(event.room_name, json_event, uWS::OpCode::TEXT);
+        app.publish(event.room_name, json_event, uWS::OpCode::TEXT);
 
         event_logger.enqueue({ .room_name = context_ptr->room_name, .json_event = json_event });
       });
@@ -65,22 +66,24 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   return std::jthread(std::move(worker_loop));
 }
 
-template<bool SSL>
-std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
-  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
+template<typename APP_TYPE, bool SSL>
+std::jthread downloadDocumentBackgroundProcess(
+  moodycamel::BlockingConcurrentQueue<DownloadTask<APP_TYPE, SSL>> &task_queue)
 {
-  auto worker_loop = [&task_queue, app](std::stop_token stop) {
+  auto worker_loop = [&task_queue](std::stop_token stop) {
     while (!stop.stop_requested()) {
-      DownloadTask<SSL> task;
+      DownloadTask<APP_TYPE, SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
       auto context_ptr = task.file_context.lock();
       if (!context_ptr || context_ptr->aborted) { continue; }
 
+      auto &app = context_ptr->app;
+
       // 1. Read file into buffer on background thread
       std::ifstream ifs(context_ptr->filename, std::ios::binary | std::ios::ate);
       if (!ifs) {
-        app->getLoop()->defer([res = task.res, ctx = task.file_context]() {
+        app.getLoop()->defer([res = task.res, ctx = task.file_context]() {
           auto ptr = ctx.lock();
           if (ptr && !ptr->aborted) {
             res->writeStatus("404 Not Found");
@@ -100,7 +103,7 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
       if (context_ptr->aborted) continue;
 
 
-      app->getLoop()->defer(
+      app.getLoop()->defer(
         [res = task.res, bytes, cors_origin = context_ptr->cors_origin, filename = context_ptr->filename]() {
           res->writeStatus("200 OK");
           phantomchat::cors::writeHeaders(res, cors_origin);
@@ -164,16 +167,16 @@ std::jthread eventLoggerBackgroundProcess(
 
 }// namespace phantomchat::processors
 
-template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<false>(uWS::App *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
+template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<uWS::App, false>(
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::App, false>> &,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &);
 
-template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<false>(uWS::App *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
+template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<uWS::App, false>(
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::App, false>> &);
 
-template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<true>(uWS::SSLApp *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
+template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<uWS::SSLApp, true>(
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::SSLApp, true>> &,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &);
 
-template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<true>(uWS::SSLApp *,
-  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<true>> &);
+template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<uWS::SSLApp, true>(
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::SSLApp, true>> &);

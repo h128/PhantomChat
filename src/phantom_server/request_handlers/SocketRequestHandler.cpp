@@ -28,8 +28,9 @@ namespace {
   }
 }// anonymous namespace
 
-template<typename WS_TYPE>
-void handleSendMessage(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSendMessage(APP_TYPE &,
+  WS_TYPE *ws,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const SendMessageRequest *request)
 {
@@ -48,11 +49,12 @@ void handleSendMessage(WS_TYPE *ws,
   dispatch_event(ws, event_logger, NewMessageReceivedEvent(sender_uuid, request->message), topic);
 }
 
-template<typename WS_TYPE, typename APP_TYPE>
-void handleLeaveRoom(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleLeaveRoom(APP_TYPE &app,
+  WS_TYPE *ws,
   RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
-  APP_TYPE *app)
+  bool is_client_initiated_leave)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
@@ -64,9 +66,9 @@ void handleLeaveRoom(WS_TYPE *ws,
 
     LeaveRoomEvent leave_room_event(user_uuid);
 
-    if (app != nullptr) {
+    if (!is_client_initiated_leave) {
       // underlying WebSocket connection closed, inform other clients
-      app->publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
+      app.publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
     } else /* client requested to leave the room*/ {
       dispatch_event(ws, event_logger, leave_room_event, topic);
       ws->unsubscribe(topic);
@@ -81,8 +83,9 @@ void handleLeaveRoom(WS_TYPE *ws,
   }
 }
 
-template<typename WS_TYPE>
-void handleJoinOrCreateRoom(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleJoinOrCreateRoom(APP_TYPE &,
+  WS_TYPE *ws,
   RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const JoinOrCreateRoomRequest *request)
@@ -128,8 +131,9 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
     topic);
 }
 
-template<typename WS_TYPE>
-void handleSignalCall(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSignalCall(APP_TYPE &,
+  WS_TYPE *ws,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const SignalCallRequest *request)
 {
@@ -154,8 +158,9 @@ template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &messag
   ws->send(json(error).dump(), uWS::OpCode::TEXT);
 }
 
-template<typename WS_TYPE>
-void handleMessage(WS_TYPE *ws,
+template<typename APP_TYPE, typename WS_TYPE>
+void handleMessage(APP_TYPE &app,
+  WS_TYPE *ws,
   RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   std::string_view msg)
@@ -167,16 +172,31 @@ void handleMessage(WS_TYPE *ws,
 
     switch (request->command) {
     case Command::JoinOrCreateRoom:
-      handleJoinOrCreateRoom(ws, room_manager, event_logger, static_cast<JoinOrCreateRoomRequest *>(request.get()));
+      handleJoinOrCreateRoom(app,//
+        ws,
+        room_manager,
+        event_logger,
+        static_cast<JoinOrCreateRoomRequest *>(request.get()));
       break;
     case Command::SendMessage:
-      handleSendMessage(ws, event_logger, static_cast<SendMessageRequest *>(request.get()));
+      handleSendMessage(app,//
+        ws,
+        event_logger,
+        static_cast<SendMessageRequest *>(request.get()));
       break;
     case Command::SignalCall:
-      handleSignalCall(ws, event_logger, static_cast<SignalCallRequest *>(request.get()));
+      handleSignalCall(app,//
+        ws,
+        event_logger,
+        static_cast<SignalCallRequest *>(request.get()));
       break;
     case Command::LeaveRoom:
-      handleLeaveRoom(ws, room_manager, event_logger, static_cast<uWS::App *>(nullptr));
+      const bool is_client_initiated_leave = true;
+      handleLeaveRoom(app,//
+        ws,
+        room_manager,
+        event_logger,
+        is_client_initiated_leave);
       break;
     }
   } catch (const std::invalid_argument &e) {
@@ -190,59 +210,65 @@ void handleMessage(WS_TYPE *ws,
 
 using WsType = uWS::WebSocket<false, true, phantomchat::contracts::PerSocketData>;
 
-template void phantomchat::handlers::handleSendMessage<WsType>(WsType *,
+template void phantomchat::handlers::handleSendMessage<uWS::App, WsType>(uWS::App &,
+  WsType *,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SendMessageRequest *);
 
-template void phantomchat::handlers::handleLeaveRoom<WsType, uWS::App>(WsType *,
+template void phantomchat::handlers::handleLeaveRoom<uWS::App, WsType>(uWS::App &,
+  WsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
-  uWS::App *);
+  bool);
 
-template void phantomchat::handlers::handleJoinOrCreateRoom<WsType>(WsType *,
+template void phantomchat::handlers::handleJoinOrCreateRoom<uWS::App, WsType>(uWS::App &,
+  WsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::JoinOrCreateRoomRequest *);
 
 template void phantomchat::handlers::sendError<WsType>(WsType *, const std::string &, const std::string &);
 
-template void phantomchat::handlers::handleSignalCall<WsType>(WsType *,
+template void phantomchat::handlers::handleSignalCall<uWS::App, WsType>(uWS::App &,
+  WsType *,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SignalCallRequest *);
 
-template void phantomchat::handlers::handleMessage<WsType>(WsType *,
+template void phantomchat::handlers::handleMessage<uWS::App, WsType>(uWS::App &,
+  WsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   std::string_view);
 
 using SslWsType = uWS::WebSocket<true, true, phantomchat::contracts::PerSocketData>;
 
-template void phantomchat::handlers::handleSendMessage<SslWsType>(SslWsType *,
+template void phantomchat::handlers::handleSendMessage<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SendMessageRequest *);
 
-template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::App>(SslWsType *,
+template void phantomchat::handlers::handleLeaveRoom<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
-  uWS::App *);
+  bool);
 
-template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::SSLApp>(SslWsType *,
-  phantomchat::services::RoomManager &,
-  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
-  uWS::SSLApp *);
 
-template void phantomchat::handlers::handleJoinOrCreateRoom<SslWsType>(SslWsType *,
+template void phantomchat::handlers::handleJoinOrCreateRoom<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::JoinOrCreateRoomRequest *);
 
 template void phantomchat::handlers::sendError<SslWsType>(SslWsType *, const std::string &, const std::string &);
 
-template void phantomchat::handlers::handleSignalCall<SslWsType>(SslWsType *,
+template void phantomchat::handlers::handleSignalCall<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SignalCallRequest *);
 
-template void phantomchat::handlers::handleMessage<SslWsType>(SslWsType *,
+template void phantomchat::handlers::handleMessage<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   std::string_view);

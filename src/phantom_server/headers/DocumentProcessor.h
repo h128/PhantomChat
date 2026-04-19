@@ -9,8 +9,10 @@
 #include <vector>
 
 namespace phantomchat::processors {
-struct FileContext
+
+template<typename APP_TYPE> struct FileContext
 {
+  APP_TYPE &app;
   std::string filename;
   std::string room_name;
   std::string user_uuid;
@@ -20,28 +22,29 @@ struct FileContext
   bool is_poster = false;
   std::atomic<bool> aborted{ false };
 
-  FileContext(std::string filename_,
+  FileContext(APP_TYPE &app_,
+    std::string filename_,
     std::string room_name_,
     std::string user_uuid_,
     bool is_poster_,
     std::string cors_origin_ = {})
-    : filename(std::move(filename_)), room_name(std::move(room_name_)), user_uuid(std::move(user_uuid_)),
+    : app(app_), filename(std::move(filename_)), room_name(std::move(room_name_)), user_uuid(std::move(user_uuid_)),
       cors_origin(std::move(cors_origin_)), is_poster(is_poster_)
   {}
 };
 
-template<bool SSL = false> struct UploadTask
+template<typename APP_TYPE, bool SSL = false> struct UploadTask
 {
   uWS::HttpResponse<SSL> *res = nullptr;
   std::vector<char> file_data;
-  std::weak_ptr<FileContext> file_context;
+  std::weak_ptr<FileContext<APP_TYPE>> file_context;
   bool is_last_chunk = false;
 };
 
-template<bool SSL = false> struct DownloadTask
+template<typename APP_TYPE, bool SSL = false> struct DownloadTask
 {
   uWS::HttpResponse<SSL> *res = nullptr;
-  std::weak_ptr<FileContext> file_context;
+  std::weak_ptr<FileContext<APP_TYPE>> file_context;
 };
 
 struct EventLogTask
@@ -52,14 +55,13 @@ struct EventLogTask
 };
 
 
-template<bool SSL>
-std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
-  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
-  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue);
+template<typename APP_TYPE, bool SSL>
+std::jthread uploadDocumentBackgroundProcess(moodycamel::BlockingConcurrentQueue<UploadTask<APP_TYPE, SSL>> &task_queue,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger);
 
-template<bool SSL>
-std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
-  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue);
+template<typename APP_TYPE, bool SSL>
+std::jthread downloadDocumentBackgroundProcess(
+  moodycamel::BlockingConcurrentQueue<DownloadTask<APP_TYPE, SSL>> &task_queue);
 
 std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<EventLogTask> &task_queue);
 

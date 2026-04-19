@@ -22,17 +22,17 @@ template<bool SSL>
 void setup_rest(uWS::TemplatedApp<SSL> &app,
   phantomchat::services::RoomManager &room_manager,
   phantomchat::utils::CacheFileProvider &file_provider,
-  moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &upload_task_queue,
-  moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &download_task_queue)
+  moodycamel::BlockingConcurrentQueue<UploadTask<uWS::TemplatedApp<SSL>, SSL>> &upload_task_queue,
+  moodycamel::BlockingConcurrentQueue<DownloadTask<uWS::TemplatedApp<SSL>, SSL>> &download_task_queue)
 {
   auto handle_static_file_with_cache = [&file_provider](auto *res, auto *req) {
     phantomchat::handlers::handleStaticFile(res, req, file_provider);
   };
-  auto handle_upload_document = [&room_manager, &upload_task_queue](auto *res, auto *req) {
-    phantomchat::handlers::handleUploadDocument(res, req, room_manager, upload_task_queue);
+  auto handle_upload_document = [&room_manager, &upload_task_queue, &app](auto *res, auto *req) {
+    phantomchat::handlers::handleUploadDocument(app, res, req, room_manager, upload_task_queue);
   };
-  auto handle_download_document = [&download_task_queue](auto *res, auto *req) {
-    phantomchat::handlers::handleDownloadDocument(res, req, download_task_queue);
+  auto handle_download_document = [&download_task_queue, &app](auto *res, auto *req) {
+    phantomchat::handlers::handleDownloadDocument(app, res, req, download_task_queue);
   };
   auto handle_options = [](auto *res, auto *req) {
     auto origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
@@ -54,12 +54,14 @@ void setup_websocket(APP_TYPE &app,
 {
   app.template ws<phantomchat::contracts::PerSocketData>("/room",
     { .open = [](auto *) {},
-      .message = [&room_manager, &event_logger](auto *ws,
+      .message = [&room_manager, &event_logger, &app](auto *ws,
                    std::string_view msg,
-                   uWS::OpCode) { phantomchat::handlers::handleMessage(ws, room_manager, event_logger, msg); },
-      .close = [&room_manager, &event_logger, &app](auto *ws,
-                 int,
-                 std::string_view) { phantomchat::handlers::handleLeaveRoom(ws, room_manager, event_logger, &app); } });
+                   uWS::OpCode) { phantomchat::handlers::handleMessage(app, ws, room_manager, event_logger, msg); },
+      .close =
+        [&room_manager, &event_logger, &app](auto *ws, int, std::string_view) {
+          const bool is_client_initiated_leave = false;
+          phantomchat::handlers::handleLeaveRoom(app, ws, room_manager, event_logger, is_client_initiated_leave);
+        } });
 }
 
 template<typename APP_TYPE> void setup_listen(APP_TYPE &app, const phantomchat::config::AppSettings &settings)
@@ -96,11 +98,14 @@ int main(int argc, char **argv)
   const bool use_ssl = !settings.ssl_certificate.empty() && !settings.ssl_certificate_key.empty();
 
   auto run_workers = [&]<bool SSL>(std::bool_constant<SSL>) {
-    moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> upload_task_queue;
-    moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> download_task_queue;
+    moodycamel::BlockingConcurrentQueue<UploadTask<uWS::TemplatedApp<SSL>, SSL>> upload_task_queue;
+    moodycamel::BlockingConcurrentQueue<DownloadTask<uWS::TemplatedApp<SSL>, SSL>> download_task_queue;
     moodycamel::BlockingConcurrentQueue<EventLogTask> event_logger;
 
     auto eventLoggerThread = eventLoggerBackgroundProcess(event_logger);
+    auto uploadThread = uploadDocumentBackgroundProcess(upload_task_queue, event_logger);
+    auto downloadThread = downloadDocumentBackgroundProcess(download_task_queue);
+
 
     const int worker_thread_count = std::max(1, settings.worker_threads);
     std::vector<std::jthread> worker_threads;
@@ -112,9 +117,6 @@ int main(int argc, char **argv)
           options.cert_file_name = settings.ssl_certificate.c_str();
         }
         uWS::TemplatedApp<SSL> app(options);
-
-        auto uploadThread = uploadDocumentBackgroundProcess(&app, event_logger, upload_task_queue);
-        auto downloadThread = downloadDocumentBackgroundProcess(&app, download_task_queue);
 
         setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
         setup_websocket(app, room_manager, event_logger);
