@@ -10,10 +10,14 @@ namespace phantomchat::handlers {
 using namespace phantomchat::services;
 using namespace phantomchat::contracts;
 using namespace phantomchat::events;
+using namespace phantomchat::processors;
 
 namespace {
   template<typename WS_TYPE, typename EventType>
-  void dispatch_event(WS_TYPE *ws, EventLogQueue &event_logger, const EventType &event, const std::string &topic)
+  void dispatch_event(WS_TYPE *ws,
+    moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+    const EventType &event,
+    const std::string &topic)
   {
     // Publish event to websocket
     const auto json_event = json(event).dump();
@@ -25,7 +29,9 @@ namespace {
 }// anonymous namespace
 
 template<typename WS_TYPE>
-void handleSendMessage(WS_TYPE *ws, EventLogQueue &event_logger, const SendMessageRequest *request)
+void handleSendMessage(WS_TYPE *ws,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  const SendMessageRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
@@ -43,7 +49,10 @@ void handleSendMessage(WS_TYPE *ws, EventLogQueue &event_logger, const SendMessa
 }
 
 template<typename WS_TYPE, typename APP_TYPE>
-void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, EventLogQueue &event_logger, APP_TYPE *app)
+void handleLeaveRoom(WS_TYPE *ws,
+  RoomManager &room_manager,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  APP_TYPE *app)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
@@ -68,14 +77,6 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, EventLogQueue &even
 
     if (result == RoomManager::LeaveRoomResult::RoomEmptyAndDeleted) {
       event_logger.enqueue({ .room_name = topic, .delete_room_on_empty = true });
-      namespace fs = std::filesystem;
-      namespace cfg = phantomchat::config;
-      const auto room_upload_path = fs::path(cfg::AppSettings::getInstance().upload_path) / topic;
-
-      std::jthread([room_upload_path] {
-        std::error_code ec;
-        fs::remove_all(room_upload_path, ec);
-      }).detach();
     }
   }
 }
@@ -83,7 +84,7 @@ void handleLeaveRoom(WS_TYPE *ws, RoomManager &room_manager, EventLogQueue &even
 template<typename WS_TYPE>
 void handleJoinOrCreateRoom(WS_TYPE *ws,
   RoomManager &room_manager,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const JoinOrCreateRoomRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
@@ -128,7 +129,9 @@ void handleJoinOrCreateRoom(WS_TYPE *ws,
 }
 
 template<typename WS_TYPE>
-void handleSignalCall(WS_TYPE *ws, EventLogQueue &event_logger, const SignalCallRequest *request)
+void handleSignalCall(WS_TYPE *ws,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  const SignalCallRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
   if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
@@ -152,7 +155,10 @@ template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &messag
 }
 
 template<typename WS_TYPE>
-void handleMessage(WS_TYPE *ws, RoomManager &room_manager, EventLogQueue &event_logger, std::string_view msg)
+void handleMessage(WS_TYPE *ws,
+  RoomManager &room_manager,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  std::string_view msg)
 {
   PhantomRequestPtr request;
   try {
@@ -185,58 +191,58 @@ void handleMessage(WS_TYPE *ws, RoomManager &room_manager, EventLogQueue &event_
 using WsType = uWS::WebSocket<false, true, phantomchat::contracts::PerSocketData>;
 
 template void phantomchat::handlers::handleSendMessage<WsType>(WsType *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SendMessageRequest *);
 
 template void phantomchat::handlers::handleLeaveRoom<WsType, uWS::App>(WsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   uWS::App *);
 
 template void phantomchat::handlers::handleJoinOrCreateRoom<WsType>(WsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::JoinOrCreateRoomRequest *);
 
 template void phantomchat::handlers::sendError<WsType>(WsType *, const std::string &, const std::string &);
 
 template void phantomchat::handlers::handleSignalCall<WsType>(WsType *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SignalCallRequest *);
 
 template void phantomchat::handlers::handleMessage<WsType>(WsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   std::string_view);
 
 using SslWsType = uWS::WebSocket<true, true, phantomchat::contracts::PerSocketData>;
 
 template void phantomchat::handlers::handleSendMessage<SslWsType>(SslWsType *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SendMessageRequest *);
 
 template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::App>(SslWsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   uWS::App *);
 
 template void phantomchat::handlers::handleLeaveRoom<SslWsType, uWS::SSLApp>(SslWsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   uWS::SSLApp *);
 
 template void phantomchat::handlers::handleJoinOrCreateRoom<SslWsType>(SslWsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::JoinOrCreateRoomRequest *);
 
 template void phantomchat::handlers::sendError<SslWsType>(SslWsType *, const std::string &, const std::string &);
 
 template void phantomchat::handlers::handleSignalCall<SslWsType>(SslWsType *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   const phantomchat::contracts::SignalCallRequest *);
 
 template void phantomchat::handlers::handleMessage<SslWsType>(SslWsType *,
   phantomchat::services::RoomManager &,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   std::string_view);

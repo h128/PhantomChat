@@ -52,8 +52,6 @@ struct EventLogTask
 };
 
 
-static inline std::atomic<bool> backgroundTasksRunning{ true };
-
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
@@ -66,4 +64,3 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
 std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<EventLogTask> &task_queue);
 
 }// namespace phantomchat::processors
-typedef moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> EventLogQueue;

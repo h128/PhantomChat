@@ -48,7 +48,9 @@ void setup_rest(uWS::TemplatedApp<SSL> &app,
 }
 
 template<typename APP_TYPE>
-void setup_websocket(APP_TYPE &app, phantomchat::services::RoomManager &room_manager, EventLogQueue &event_logger)
+void setup_websocket(APP_TYPE &app,
+  phantomchat::services::RoomManager &room_manager,
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger)
 {
   app.template ws<phantomchat::contracts::PerSocketData>("/room",
     { .open = [](auto *) {},
@@ -121,8 +123,6 @@ int main(int argc, char **argv)
         app.run();
       });
     }
-
-    phantomchat::processors::backgroundTasksRunning = false;
   };
 
   if (use_ssl) {

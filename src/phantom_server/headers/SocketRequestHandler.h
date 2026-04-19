@@ -12,24 +12,24 @@ namespace phantomchat::handlers {
 
 template<typename WS_TYPE>
 void handleSendMessage(WS_TYPE *ws,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::SendMessageRequest *request);
 
 template<typename WS_TYPE, typename APP_TYPE>
 void handleLeaveRoom(WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   APP_TYPE *app);
 
 template<typename WS_TYPE>
 void handleJoinOrCreateRoom(WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::JoinOrCreateRoomRequest *request);
 
 template<typename WS_TYPE>
 void handleSignalCall(WS_TYPE *ws,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   const phantomchat::contracts::SignalCallRequest *request);
 
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid);
@@ -37,7 +37,7 @@ template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &messag
 template<typename WS_TYPE>
 void handleMessage(WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   std::string_view msg);
 
 }// namespace phantomchat::handlers

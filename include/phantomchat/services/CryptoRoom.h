@@ -32,6 +32,6 @@ struct PHANTOM_CORE_EXPORT EncryptRoomArgs
 // Returns a hex-encoded ciphertext (crypto_box_easy with zero nonce).
 PHANTOM_CORE_EXPORT std::string encryptRoomKey(const EncryptRoomArgs &args);
 
-PHANTOM_CORE_EXPORT std::vector<unsigned char> rs256_sign(std::string_view privateKey, std::string_view message);
+PHANTOM_CORE_EXPORT std::vector<unsigned char> rs256_sign(std::string_view message, std::string_view privateKey);
 
 }// namespace phantomchat::services::crypto_room

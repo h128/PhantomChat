@@ -95,11 +95,10 @@ std::string encryptRoomKey(const EncryptRoomArgs &args)
 }
 
 
-std::vector<unsigned char> rs256_sign(std::string_view privateKey, std::string_view message)
+std::vector<unsigned char> rs256_sign(std::string_view message, std::string_view privateKey)
 {
 
-  auto load_private_key_from_pem = [](std::string_view pem) -> auto
-  {
+  auto load_private_key_from_pem = [](std::string_view pem) -> auto {
     constexpr auto bio_deleter = [](BIO *b) noexcept { BIO_free(b); };
     std::unique_ptr<BIO, decltype(bio_deleter)> bio{ BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size())) };
     if (!bio) throw std::runtime_error("BIO_new_mem_buf");

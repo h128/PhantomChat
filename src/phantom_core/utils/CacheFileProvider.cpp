@@ -23,13 +23,12 @@ namespace phantomchat::utils {
 CacheFileProvider::CacheFileProvider(std::string root_path, bool gzip_compression)
   : root_path_(std::move(root_path)), gzip_enabled_(gzip_compression)
 {
-  phantomchat::utils::FileProvider file_provider;
+
 
   const auto root = std::filesystem::path(root_path_);
-  if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
-    throw std::invalid_argument("Invalid root directory for cache file provider: " + root_path_);
-  }
+  if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) { return; }
 
+  phantomchat::utils::FileProvider file_provider;
   for (const auto &entry : std::filesystem::recursive_directory_iterator(root)) {
     if (!entry.is_regular_file()) { continue; }
 
@@ -66,9 +65,7 @@ std::vector<char> CacheFileProvider::readAllBytes(const std::string &path) const
 std::uintmax_t CacheFileProvider::size(const std::string &path) const { return getEntry(path).size; }
 
 std::filesystem::file_time_type CacheFileProvider::lastWriteTime(const std::string &path) const
-{
-  return getEntry(path).last_write_time;
-}
+{ return getEntry(path).last_write_time; }
 
 const CachedFileEntry &CacheFileProvider::getEntry(const std::string &path) const
 {
@@ -88,17 +85,11 @@ bool CacheFileProvider::hasCompressed(const std::string &path) const noexcept
 }
 
 const std::vector<char> &CacheFileProvider::readCompressedBytesRef(const std::string &path) const
-{
-  return getEntry(path).compressed_bytes;
-}
+{ return getEntry(path).compressed_bytes; }
 
 std::uintmax_t CacheFileProvider::compressedSize(const std::string &path) const
-{
-  return getEntry(path).compressed_bytes.size();
-}
+{ return getEntry(path).compressed_bytes.size(); }
 
 CacheFileProvider::CacheIterator CacheFileProvider::findFile(const std::string &path) const
-{
-  return cache_.find(normalizePathKey(path));
-}
+{ return cache_.find(normalizePathKey(path)); }
 }// namespace phantomchat::utils

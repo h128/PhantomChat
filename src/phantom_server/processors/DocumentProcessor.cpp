@@ -12,11 +12,11 @@ namespace phantomchat::processors {
 
 template<bool SSL>
 std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
-  EventLogQueue &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   moodycamel::BlockingConcurrentQueue<UploadTask<SSL>> &task_queue)
 {
-  auto worker_loop = [&task_queue, &event_logger, app] {
-    while (backgroundTasksRunning.load()) {
+  auto worker_loop = [&task_queue, &event_logger, app](std::stop_token stop) {
+    while (!stop.stop_requested()) {
       UploadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
@@ -62,15 +62,15 @@ std::jthread uploadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
     }
   };
 
-  return std::jthread(worker_loop);
+  return std::jthread(std::move(worker_loop));
 }
 
 template<bool SSL>
 std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
   moodycamel::BlockingConcurrentQueue<DownloadTask<SSL>> &task_queue)
 {
-  auto worker_loop = [&task_queue, app] {
-    while (backgroundTasksRunning.load()) {
+  auto worker_loop = [&task_queue, app](std::stop_token stop) {
+    while (!stop.stop_requested()) {
       DownloadTask<SSL> task;
       if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
@@ -117,41 +117,38 @@ std::jthread downloadDocumentBackgroundProcess(uWS::TemplatedApp<SSL> *app,
     }
   };
 
-  return std::jthread(worker_loop);
+  return std::jthread(std::move(worker_loop));
 }
 
 
-namespace {
-  std::unordered_map<std::string, std::ofstream> files{};
-  std::ofstream &get_room_file(const std::string &room_name) { return files[room_name]; }
-  void release_room_file(const std::string &room_name)
-  {
-    auto &file = get_room_file(room_name);
-    file.close();
-    files.erase(room_name);
-  }
-
-}// namespace
-
-
-std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<EventLogTask> &task_queue)
+std::jthread eventLoggerBackgroundProcess(
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &task_queue)
 {
-  auto worker_loop = [&task_queue] {
-    while (backgroundTasksRunning.load()) {
-      EventLogTask task;
-      if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
+  auto worker_loop = [&task_queue](std::stop_token stop) {
+    std::unordered_map<std::string, std::ofstream> files_map{};
 
-      if (task.delete_room_on_empty) {
-        release_room_file(task.room_name);
-        continue;
-      }
+    while (!stop.stop_requested()) {
+      phantomchat::processors::EventLogTask task;
+      if (!task_queue.wait_dequeue_timed(task, std::chrono::milliseconds(1000))) continue;
 
       namespace fs = std::filesystem;
       namespace cfg = phantomchat::config;
       const fs::path storage_dir = fs::path(cfg::AppSettings::getInstance().upload_path) / task.room_name;
+
+      if (task.delete_room_on_empty) {
+        auto &file = files_map.at(task.room_name);
+        file.close();
+        files_map.erase(task.room_name);
+
+        std::error_code ec;
+        fs::remove_all(storage_dir, ec);// Remove all files in the room's upload directory
+
+        continue;
+      }
+
       const fs::path file_path = storage_dir / (task.room_name + ".ndjson");
       // file should be opened till the room is deleted, so we can just keep it open and append to it
-      auto &file = get_room_file(task.room_name);
+      auto &file = files_map[task.room_name];
       if (!file.is_open() || !fs::exists(file_path)) {
         fs::create_directories(storage_dir);
         file.open(file_path, std::ios::out | std::ios::app);
@@ -162,20 +159,20 @@ std::jthread eventLoggerBackgroundProcess(moodycamel::BlockingConcurrentQueue<Ev
     }
   };
 
-  return std::jthread(worker_loop);
+  return std::jthread(std::move(worker_loop));
 }
 
 }// namespace phantomchat::processors
 
 template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<false>(uWS::App *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<false>> &);
 
 template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<false>(uWS::App *,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<false>> &);
 
 template std::jthread phantomchat::processors::uploadDocumentBackgroundProcess<true>(uWS::SSLApp *,
-  EventLogQueue &,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<true>> &);
 
 template std::jthread phantomchat::processors::downloadDocumentBackgroundProcess<true>(uWS::SSLApp *,
