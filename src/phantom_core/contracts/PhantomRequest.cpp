@@ -34,6 +34,15 @@ void JoinOrCreateRoomRequest::validate()
   if (display_name.size() > 64) { throw std::invalid_argument("display_name exceeds maximum length of 64"); }
 }
 
+void SetUserStatusRequest::validate()
+{
+  if (status != UserStatus::Active && status != UserStatus::Idle) {
+    throw std::invalid_argument("status must be Active (0) or Idle (1)");
+  }
+
+  if (status_message.size() > 256) { throw std::invalid_argument("status_message exceeds maximum length of 256"); }
+}
+
 void SendMessageRequest::validate()
 {
   if (message.empty()) { throw std::invalid_argument("message cannot be empty"); }
@@ -86,6 +95,11 @@ PhantomRequestPtr from_json(std::string_view json_string)
   }
   case Command::LeaveRoom: {
     auto request = std::make_unique<LeaveRoomRequest>();
+    from_json(json_data, *request);
+    return request;
+  }
+  case Command::SetUserStatus: {
+    auto request = std::make_unique<SetUserStatusRequest>();
     from_json(json_data, *request);
     return request;
   }

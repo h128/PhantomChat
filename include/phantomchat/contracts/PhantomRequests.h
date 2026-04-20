@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <phantomchat/contracts/Member.h>
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
 #include <string_view>
@@ -10,7 +11,7 @@
 
 namespace phantomchat::contracts {
 
-enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3, SignalCall = 4 };
+enum class Command { JoinOrCreateRoom = 1, SendMessage = 2, LeaveRoom = 3, SignalCall = 4, SetUserStatus = 5 };
 enum class SignalCallAction {
   OFFER = 1,// WebRTC SDP Offer
   ANSWER = 2,// WebRTC SDP Answer (The technical 'Accept')
@@ -50,6 +51,19 @@ public:
   std::string public_key;
   int16_t avatar_id = 0;
   std::string display_name;
+  std::string fcm_token;
+
+  void validate() override;
+};
+
+// SetUserStatus request
+class PHANTOM_CORE_EXPORT SetUserStatusRequest final : public PhantomRequestBase
+{
+public:
+  SetUserStatusRequest() { command = Command::SetUserStatus; }
+
+  UserStatus status = UserStatus::Active;
+  std::string status_message;
 
   void validate() override;
 };
@@ -70,9 +84,7 @@ class PHANTOM_CORE_EXPORT LeaveRoomRequest final : public PhantomRequestBase
 public:
   LeaveRoomRequest() { command = Command::LeaveRoom; }
 
-  void validate() override
-  { /* No additional validation needed for leaving a room */
-  }
+  void validate() override { /* No additional validation needed for leaving a room */ }
 };
 
 

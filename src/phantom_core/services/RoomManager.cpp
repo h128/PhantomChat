@@ -13,8 +13,13 @@ RoomManager::JoinOrCreateResult RoomManager::joinOrCreateRoom(const RoomArgs &ar
   auto &room = it->second;
   auto &members = room.members;
 
-  if (!std::ranges::any_of(members, [&](const auto &m) { return m.user_uuid == args.user_uuid; })) {
-    members.push_back({ .user_uuid = args.user_uuid, .avatar_id = args.avatar_id, .display_name = args.display_name });
+  bool found = std::ranges::contains(members, args.user_uuid, &contracts::Member::user_uuid);
+  if (!found) {
+    members.push_back({ //
+      .user_uuid = args.user_uuid,
+      .avatar_id = args.avatar_id,
+      .display_name = args.display_name,
+      .fcm_token = args.fcm_token });
   }
   if (created) {
     // Initialize new room
@@ -63,6 +68,60 @@ RoomManager::LeaveRoomResult RoomManager::leaveRoom(const RoomArgs &args)
     return LeaveRoomResult::RoomEmptyAndDeleted;
   }
   return LeaveRoomResult::Success;
+}
+
+void RoomManager::setUserStatus(const SetUserStatusArgs &args)
+{
+  std::unique_lock<std::shared_mutex> lock(rooms_mutex);
+  auto it = rooms.find(args.room_name);
+  if (it == rooms.end()) { return; }
+
+  auto &members = it->second.members;
+  auto member_it = std::ranges::find(members, args.user_uuid, &contracts::Member::user_uuid);
+  if (member_it == members.end()) { return; }
+
+  member_it->status = args.status;
+  member_it->status_message = std::move(args.status_message);
+
+  return;
+}
+
+std::vector<std::string> RoomManager::getIdleMembers(const std::string &room_name,
+  std::chrono::seconds min_push_interval) const
+{
+  std::vector<std::string> result;
+  std::shared_lock<std::shared_mutex> lock(rooms_mutex);
+
+  auto it = rooms.find(room_name);
+  if (it != rooms.end()) {
+
+    const auto now = std::chrono::system_clock::now();
+    const auto cutoff = now - min_push_interval;
+
+    const auto &room = it->second;
+
+    for (const auto &member : room.members) {
+      if (member.status != contracts::UserStatus::Idle) continue;
+      if (member.fcm_token.empty()) continue;
+      if (member.last_push_notification_timestamp > cutoff) continue;
+
+      result.push_back(member.fcm_token);
+    }
+  }
+  return result;
+}
+
+void RoomManager::markPushed(const std::string &room_name, std::string_view fcm_token)
+{
+  std::unique_lock<std::shared_mutex> lock(rooms_mutex);
+  auto it = rooms.find(room_name);
+  if (it == rooms.end()) { return; }
+
+  auto &members = it->second.members;
+  auto member_it = std::ranges::find(members, fcm_token, &contracts::Member::fcm_token);
+  if (member_it == members.end()) { return; }
+
+  member_it->last_push_notification_timestamp = std::chrono::system_clock::now();
 }
 
 }// namespace phantomchat::services
