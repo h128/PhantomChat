@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DocumentProcessor.h"
+#include "PushNotificationProcessor.h"
 #include <App.h>
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/contracts/PhantomRequests.h>
@@ -13,8 +14,16 @@ namespace phantomchat::handlers {
 template<typename APP_TYPE, typename WS_TYPE>
 void handleSendMessage(APP_TYPE &app,
   WS_TYPE *ws,
+  phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::PushNotificationTask> &push_notification_queue,
   const phantomchat::contracts::SendMessageRequest *request);
+
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSetUserStatus(APP_TYPE &app,
+  WS_TYPE *ws,
+  phantomchat::services::RoomManager &room_manager,
+  const phantomchat::contracts::SetUserStatusRequest *request);
 
 template<typename APP_TYPE, typename WS_TYPE>
 void handleLeaveRoom(APP_TYPE &app,
@@ -43,6 +52,7 @@ void handleMessage(APP_TYPE &app,
   WS_TYPE *ws,
   phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
+  moodycamel::BlockingConcurrentQueue<phantomchat::processors::PushNotificationTask> &push_notification_queue,
   std::string_view msg);
 
 }// namespace phantomchat::handlers

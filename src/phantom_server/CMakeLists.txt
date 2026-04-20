@@ -1,6 +1,7 @@
 add_executable(PhantomServer
   main.cpp
   processors/DocumentProcessor.cpp
+  processors/PushNotificationProcessor.cpp
   request_handlers/StaticFileHandler.cpp
   request_handlers/DocumentHandler.cpp
   request_handlers/SocketRequestHandler.cpp)

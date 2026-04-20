@@ -5,6 +5,8 @@ namespace phantomchat::config {
 
 struct FirebaseSettings
 {
+  bool enabled = false;
+  int min_push_interval_seconds = 60;
   std::string type;
   std::string scope;
   std::string project_id;

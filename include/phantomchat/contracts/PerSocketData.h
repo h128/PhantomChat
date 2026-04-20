@@ -20,5 +20,7 @@ struct PerSocketData
     room_name.clear();
     public_key.clear();
   }
+
+  bool isEmpty() const { return user_uuid.empty() || room_name.empty(); }
 };
 }// namespace phantomchat::contracts

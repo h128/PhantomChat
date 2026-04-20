@@ -7,6 +7,8 @@
 #include <CLI/CLI.hpp>
 #include <fmt/core.h>
 #include <fmt/std.h>
+#include <optional>
+#include "headers/PushNotificationProcessor.h"
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/services/CryptoRoom.h>
@@ -50,13 +52,15 @@ void setup_rest(uWS::TemplatedApp<SSL> &app,
 template<typename APP_TYPE>
 void setup_websocket(APP_TYPE &app,
   phantomchat::services::RoomManager &room_manager,
-  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger)
+  moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &push_notification_queue)
 {
   app.template ws<phantomchat::contracts::PerSocketData>("/room",
     { .open = [](auto *) {},
-      .message = [&room_manager, &event_logger, &app](auto *ws,
-                   std::string_view msg,
-                   uWS::OpCode) { phantomchat::handlers::handleMessage(app, ws, room_manager, event_logger, msg); },
+      .message = [&room_manager, &event_logger, &push_notification_queue, &app](
+                   auto *ws, std::string_view msg, uWS::OpCode) {
+        phantomchat::handlers::handleMessage(app, ws, room_manager, event_logger, push_notification_queue, msg);
+      },
       .close =
         [&room_manager, &event_logger, &app](auto *ws, int, std::string_view) {
           const bool is_client_initiated_leave = false;
@@ -101,10 +105,16 @@ int main(int argc, char **argv)
     moodycamel::BlockingConcurrentQueue<UploadTask<uWS::TemplatedApp<SSL>, SSL>> upload_task_queue;
     moodycamel::BlockingConcurrentQueue<DownloadTask<uWS::TemplatedApp<SSL>, SSL>> download_task_queue;
     moodycamel::BlockingConcurrentQueue<EventLogTask> event_logger;
+    moodycamel::BlockingConcurrentQueue<PushNotificationTask> push_notification_queue;
 
     auto eventLoggerThread = eventLoggerBackgroundProcess(event_logger);
     auto uploadThread = uploadDocumentBackgroundProcess(upload_task_queue, event_logger);
     auto downloadThread = downloadDocumentBackgroundProcess(download_task_queue);
+
+    std::optional<std::jthread> pushNotificationThread;
+    if (settings.firebase_settings.enabled) {
+      pushNotificationThread = pushNotificationBackgroundProcess(push_notification_queue, room_manager, settings);
+    }
 
 
     const int worker_thread_count = std::max(1, settings.worker_threads);
@@ -119,7 +129,7 @@ int main(int argc, char **argv)
         uWS::TemplatedApp<SSL> app(options);
 
         setup_rest(app, room_manager, file_provider, upload_task_queue, download_task_queue);
-        setup_websocket(app, room_manager, event_logger);
+        setup_websocket(app, room_manager, event_logger, push_notification_queue);
         setup_listen(app, settings);
 
         app.run();

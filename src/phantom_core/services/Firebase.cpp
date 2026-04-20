@@ -89,8 +89,102 @@ namespace {
     return { .token = fmt::format(FMT_COMPILE("{}.{}"), signing_input, signature_b64), .issued_at = now };
   }
 
+  struct HttpJsonResponse
+  {
+    int status;
+    std::string body;
+  };
+  HttpJsonResponse http_post_json(std::string_view url, std::string_view bearer_token, std::string_view json_body)
+  {
+    const HttpJsonResponse error_response{ .status = -1, .body = "HTTP request failed" };
+
+    auto curl_deleter = [](CURL *c) { curl_easy_cleanup(c); };
+    std::unique_ptr<CURL, decltype(curl_deleter)> curl{ curl_easy_init() };
+    if (!curl) return error_response;
+
+    auto mime_deleter = [](curl_mime *m) { curl_mime_free(m); };
+    std::unique_ptr<curl_mime, decltype(mime_deleter)> mime{ curl_mime_init(curl.get()) };
+    if (!mime) return error_response;
+
+    curl_mimepart *part = curl_mime_addpart(mime.get());
+    if (!part) return error_response;
+
+    curl_mime_data(part, json_body.data(), json_body.size());
+    curl_mime_type(part, "application/json; charset=UTF-8");
+
+    auto slist_deleter = [](curl_slist *s) { curl_slist_free_all(s); };
+    std::unique_ptr<curl_slist, decltype(slist_deleter)> headers{ nullptr };
+    const std::string auth_header = fmt::format("Authorization: Bearer {}", bearer_token);
+    headers.reset(curl_slist_append(headers.release(), auth_header.c_str()));
+
+    HttpJsonResponse result;
+
+    constexpr auto write_cb =
+      +[](char *ptr, std::size_t size, std::size_t nmemb, void *userdata) noexcept -> std::size_t {
+      const std::size_t bytes = size * nmemb;
+      static_cast<std::string *>(userdata)->append(ptr, bytes);
+      return bytes;
+    };
+
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.data());
+    curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
+    curl_easy_setopt(curl.get(), CURLOPT_MIMEPOST, mime.get());
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &result.body);
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+
+    if (const CURLcode rc = curl_easy_perform(curl.get()); rc != CURLE_OK) return error_response;
+
+    curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &result.status);
+    return result;
+  }
+
+
+  std::string
+    build_fcm_payload(std::string_view fcm_token, std::string_view title, std::string_view body, std::string_view icon)
+  {
+    nlohmann::json message;
+    message["token"] = fcm_token;
+
+    // notification block
+    message["notification"] = { { "title", title }, { "body", body } };
+
+    // optional platform-specific blocks
+    if (!icon.empty()) {
+      message["android"] = { { "notification", { { "icon", icon } } } };
+
+      message["webpush"] = { { "notification", { { "icon", icon } } } };
+    }
+
+    nlohmann::json root;
+    root["message"] = std::move(message);
+
+    return root.dump();
+  }
+
 
 }// anonymous namespace
+
+
+FcmSendResult send_fcm_message(std::string_view access_token,
+  std::string_view project_id,
+  std::string_view fcm_token,
+  std::string_view title,
+  std::string_view body,
+  std::string_view icon)
+{
+  if (access_token.empty() || project_id.empty() || fcm_token.empty()) return FcmSendResult::Failed;
+
+
+  const std::string url = fmt::format("https://fcm.googleapis.com/v1/projects/{}/messages:send", project_id);
+  const std::string payload = build_fcm_payload(fcm_token, title, body, icon);
+  const auto response = http_post_json(url, access_token, payload);
+
+  if (response.status == 401) return FcmSendResult::Unauthorized;
+  if (response.status >= 200 && response.status < 300) return FcmSendResult::Success;
+
+  return FcmSendResult::Failed;
+}
 
 AccessToken fetch_access_token(const phantomchat::config::FirebaseSettings &fb)
 {

@@ -1,4 +1,6 @@
 #include "../headers/SocketRequestHandler.h"
+#include <chrono>
+#include <fmt/core.h>
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PhantomResponses.h>
 #include <phantomchat/events/Events.h>
@@ -31,7 +33,9 @@ namespace {
 template<typename APP_TYPE, typename WS_TYPE>
 void handleSendMessage(APP_TYPE &,
   WS_TYPE *ws,
+  RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &push_notification_queue,
   const SendMessageRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
@@ -47,6 +51,34 @@ void handleSendMessage(APP_TYPE &,
   const std::string &topic = socket_data->room_name;
   const std::string &sender_uuid = socket_data->user_uuid;
   dispatch_event(ws, event_logger, NewMessageReceivedEvent(sender_uuid, request->message), topic);
+
+  const auto &fb = phantomchat::config::AppSettings::getInstance().firebase_settings;
+  if (fb.enabled) {
+    auto idle_members = room_manager.getIdleMembers(topic, std::chrono::seconds{ fb.min_push_interval_seconds });
+    if (!idle_members.empty()) {
+      push_notification_queue.enqueue({ .room_name = topic,
+        .recipients = std::move(idle_members),
+        .title = fmt::format("New message in {}", topic),
+        .body = fmt::format("{} sent a message", sender_uuid),
+        .icon = "https://fantom.chat/comment.png" });
+    }
+  }
+}
+
+template<typename APP_TYPE, typename WS_TYPE>
+void handleSetUserStatus(APP_TYPE &, WS_TYPE *ws, RoomManager &room_manager, const SetUserStatusRequest *request)
+{
+  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+  if (socket_data->isEmpty()) throw std::invalid_argument("User not in a room");
+
+  room_manager.setUserStatus({
+    .room_name = socket_data->room_name,
+    .user_uuid = socket_data->user_uuid,
+    .status = request->status,
+    .status_message = request->status_message,
+  });
+
+  ws->send(json(GeneralResponse{ "Status updated", request->request_uuid }).dump(), uWS::OpCode::TEXT);
 }
 
 template<typename APP_TYPE, typename WS_TYPE>
@@ -57,30 +89,28 @@ void handleLeaveRoom(APP_TYPE &app,
   bool is_client_initiated_leave)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (!socket_data->room_name.empty() && !socket_data->user_uuid.empty()) {
-    const std::string topic = socket_data->room_name;
-    const std::string &user_uuid = socket_data->user_uuid;
+  if (socket_data->isEmpty()) return;
 
-    auto result = room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
+  const std::string &topic = socket_data->room_name;
+  const std::string &user_uuid = socket_data->user_uuid;
 
+  auto result = room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
-    LeaveRoomEvent leave_room_event(user_uuid);
+  LeaveRoomEvent leave_room_event(user_uuid);
 
-    if (!is_client_initiated_leave) {
-      // underlying WebSocket connection closed, inform other clients
-      app.publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
-    } else /* client requested to leave the room*/ {
-      dispatch_event(ws, event_logger, leave_room_event, topic);
-      ws->unsubscribe(topic);
-      ws->send(json(GeneralResponse{ "Left room " + topic }).dump(), uWS::OpCode::TEXT);
-    }
-
-    socket_data->clear();
-
-    if (result == RoomManager::LeaveRoomResult::RoomEmptyAndDeleted) {
-      event_logger.enqueue({ .room_name = topic, .delete_room_on_empty = true });
-    }
+  if (!is_client_initiated_leave) {
+    // underlying WebSocket connection closed, inform other clients
+    app.publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
+  } else /* client requested to leave the room*/ {
+    dispatch_event(ws, event_logger, leave_room_event, topic);
+    ws->unsubscribe(topic);
+    ws->send(json(GeneralResponse{ "Left room " + topic }).dump(), uWS::OpCode::TEXT);
   }
+
+  if (result == RoomManager::LeaveRoomResult::RoomEmptyAndDeleted) {
+    event_logger.enqueue({ .room_name = topic, .delete_room_on_empty = true });
+  }
+  socket_data->clear();
 }
 
 template<typename APP_TYPE, typename WS_TYPE>
@@ -92,7 +122,7 @@ void handleJoinOrCreateRoom(APP_TYPE &,
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
 
-  if (!socket_data->room_name.empty() || !socket_data->user_uuid.empty()) {
+  if (!socket_data->isEmpty()) {
     throw std::invalid_argument(
       "The user is already in another room; they should leave the current room before creating or joining a new one");
   }
@@ -100,7 +130,8 @@ void handleJoinOrCreateRoom(APP_TYPE &,
   auto result = room_manager.joinOrCreateRoom({ .room_name = request->room_name,
     .user_uuid = request->user_uuid,
     .avatar_id = request->avatar_id,
-    .display_name = request->display_name });
+    .display_name = request->display_name,
+    .fcm_token = request->fcm_token });
 
   JoinOrCreateRoomResponse response;
   response.request_uuid = request->request_uuid;
@@ -138,9 +169,7 @@ void handleSignalCall(APP_TYPE &,
   const SignalCallRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
-    throw std::invalid_argument("User not in a room");
-  }
+  if (socket_data->isEmpty()) { throw std::invalid_argument("User not in a room"); }
 
   const std::string &topic = socket_data->room_name;
   const std::string &sender_uuid = socket_data->user_uuid;
@@ -163,6 +192,7 @@ void handleMessage(APP_TYPE &app,
   WS_TYPE *ws,
   RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &push_notification_queue,
   std::string_view msg)
 {
   PhantomRequestPtr request;
@@ -181,7 +211,9 @@ void handleMessage(APP_TYPE &app,
     case Command::SendMessage:
       handleSendMessage(app,//
         ws,
+        room_manager,
         event_logger,
+        push_notification_queue,
         static_cast<SendMessageRequest *>(request.get()));
       break;
     case Command::SignalCall:
@@ -190,13 +222,20 @@ void handleMessage(APP_TYPE &app,
         event_logger,
         static_cast<SignalCallRequest *>(request.get()));
       break;
-    case Command::LeaveRoom:
+    case Command::LeaveRoom: {
       const bool is_client_initiated_leave = true;
       handleLeaveRoom(app,//
         ws,
         room_manager,
         event_logger,
         is_client_initiated_leave);
+      break;
+    }
+    case Command::SetUserStatus:
+      handleSetUserStatus(app,//
+        ws,
+        room_manager,
+        static_cast<SetUserStatusRequest *>(request.get()));
       break;
     }
   } catch (const std::invalid_argument &e) {
@@ -212,8 +251,15 @@ using WsType = uWS::WebSocket<false, true, phantomchat::contracts::PerSocketData
 
 template void phantomchat::handlers::handleSendMessage<uWS::App, WsType>(uWS::App &,
   WsType *,
+  phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   const phantomchat::contracts::SendMessageRequest *);
+
+template void phantomchat::handlers::handleSetUserStatus<uWS::App, WsType>(uWS::App &,
+  WsType *,
+  phantomchat::services::RoomManager &,
+  const phantomchat::contracts::SetUserStatusRequest *);
 
 template void phantomchat::handlers::handleLeaveRoom<uWS::App, WsType>(uWS::App &,
   WsType *,
@@ -238,14 +284,22 @@ template void phantomchat::handlers::handleMessage<uWS::App, WsType>(uWS::App &,
   WsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   std::string_view);
 
 using SslWsType = uWS::WebSocket<true, true, phantomchat::contracts::PerSocketData>;
 
 template void phantomchat::handlers::handleSendMessage<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
   SslWsType *,
+  phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   const phantomchat::contracts::SendMessageRequest *);
+
+template void phantomchat::handlers::handleSetUserStatus<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
+  SslWsType *,
+  phantomchat::services::RoomManager &,
+  const phantomchat::contracts::SetUserStatusRequest *);
 
 template void phantomchat::handlers::handleLeaveRoom<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
   SslWsType *,
@@ -271,4 +325,5 @@ template void phantomchat::handlers::handleMessage<uWS::SSLApp, SslWsType>(uWS::
   SslWsType *,
   phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
+  moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   std::string_view);

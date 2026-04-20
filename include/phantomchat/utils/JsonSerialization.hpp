@@ -22,6 +22,9 @@ void from_json(const nlohmann::json &j, SendMessageRequest &request);
 void to_json(nlohmann::json &j, const LeaveRoomRequest &request);
 void from_json(const nlohmann::json &j, LeaveRoomRequest &request);
 
+void to_json(nlohmann::json &j, const SetUserStatusRequest &request);
+void from_json(const nlohmann::json &j, SetUserStatusRequest &request);
+
 void to_json(nlohmann::json &j, const SessionDescription &sd);
 void from_json(const nlohmann::json &j, SessionDescription &sd);
 

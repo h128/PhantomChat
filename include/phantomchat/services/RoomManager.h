@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -9,6 +10,7 @@
 #include <shared_mutex>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -42,8 +44,16 @@ public:
     std::string user_uuid;
     int16_t avatar_id = 0;
     std::string display_name{ "" };
+    std::string fcm_token{ "" };
   };
 
+  struct SetUserStatusArgs
+  {
+    std::string room_name;
+    std::string user_uuid;
+    contracts::UserStatus status = contracts::UserStatus::Active;
+    std::string status_message{};
+    };
 
   ~RoomManager() = default;
 
@@ -68,6 +78,12 @@ public:
 
   enum class LeaveRoomResult { Success, RoomNotFound, UserNotInRoom, RoomEmptyAndDeleted };
   LeaveRoomResult leaveRoom(const RoomArgs &args);
+
+  void setUserStatus(const SetUserStatusArgs &args);
+
+  std::vector<std::string> getIdleMembers(const std::string &room_name, std::chrono::seconds min_push_interval) const;
+
+  void markPushed(const std::string &room_name, std::string_view fcm_token);
 
 private:
   mutable std::shared_mutex rooms_mutex;

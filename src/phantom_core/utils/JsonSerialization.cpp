@@ -14,9 +14,11 @@ namespace phantomchat::contracts {
 
 void to_json(nlohmann::json &j, const Member &member)
 {
-  j = nlohmann::json{
-    { "user_uuid", member.user_uuid }, { "avatar_id", member.avatar_id }, { "display_name", member.display_name }
-  };
+  j = nlohmann::json{ { "user_uuid", member.user_uuid },
+    { "avatar_id", member.avatar_id },
+    { "display_name", member.display_name },
+    { "status", static_cast<int>(member.status) },
+    { "status_message", member.status_message } };
 }
 
 void from_json(const nlohmann::json &j, Member &member)
@@ -24,6 +26,8 @@ void from_json(const nlohmann::json &j, Member &member)
   member.user_uuid = j.at("user_uuid").get<std::string>();
   member.avatar_id = j.value("avatar_id", static_cast<int16_t>(0));
   member.display_name = j.value("display_name", std::string{});
+  member.status = static_cast<UserStatus>(j.value("status", 0));
+  member.status_message = j.value("status_message", std::string{});
 }
 
 void to_json(nlohmann::json &j, const JoinOrCreateRoomRequest &request)
@@ -34,7 +38,8 @@ void to_json(nlohmann::json &j, const JoinOrCreateRoomRequest &request)
     { "room_name", request.room_name },
     { "public_key", request.public_key },
     { "avatar_id", request.avatar_id },
-    { "display_name", request.display_name } };
+    { "display_name", request.display_name },
+    { "fcm_token", request.fcm_token } };
 }
 
 void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
@@ -46,6 +51,23 @@ void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
   request.public_key = j.at("public_key").get<std::string>();
   request.avatar_id = j.value("avatar_id", static_cast<int16_t>(0));
   request.display_name = j.value("display_name", std::string{});
+  request.fcm_token = j.value("fcm_token", std::string{});
+}
+
+void to_json(nlohmann::json &j, const SetUserStatusRequest &request)
+{
+  j = nlohmann::json{ { "request_uuid", request.request_uuid },
+    { "command", static_cast<int>(request.command) },
+    { "status", static_cast<int>(request.status) },
+    { "status_message", request.status_message } };
+}
+
+void from_json(const nlohmann::json &j, SetUserStatusRequest &request)
+{
+  request.request_uuid = j.at("request_uuid").get<std::string>();
+  request.command = static_cast<Command>(j.at("command").get<int>());
+  request.status = static_cast<UserStatus>(j.at("status").get<int>());
+  request.status_message = j.value("status_message", std::string{});
 }
 
 void to_json(nlohmann::json &j, const SendMessageRequest &request)
@@ -63,9 +85,7 @@ void from_json(const nlohmann::json &j, SendMessageRequest &request)
 }
 
 void to_json(nlohmann::json &j, const LeaveRoomRequest &request)
-{
-  j = nlohmann::json{ { "request_uuid", request.request_uuid }, { "command", static_cast<int>(request.command) } };
-}
+{ j = nlohmann::json{ { "request_uuid", request.request_uuid }, { "command", static_cast<int>(request.command) } }; }
 
 void from_json(const nlohmann::json &j, LeaveRoomRequest &request)
 {
@@ -110,9 +130,7 @@ void to_json(nlohmann::json &j, const GeneralResponse &response)
 }
 
 void to_json(nlohmann::json &j, const SessionDescription &sd)
-{
-  j = nlohmann::json{ { "type", sd.type }, { "sdp", sd.sdp } };
-}
+{ j = nlohmann::json{ { "type", sd.type }, { "sdp", sd.sdp } }; }
 
 void from_json(const nlohmann::json &j, SessionDescription &sd)
 {
@@ -257,6 +275,8 @@ void to_json(nlohmann::json &j, const AppSettings &settings)
 
 void from_json(const nlohmann::json &j, FirebaseSettings &fb)
 {
+  fb.enabled = j.value("enabled", false);
+  fb.min_push_interval_seconds = j.value("min_push_interval_seconds", 60);
   fb.type = j.at("type").get<std::string>();
   fb.scope = j.at("scope").get<std::string>();
   fb.project_id = j.at("project_id").get<std::string>();
