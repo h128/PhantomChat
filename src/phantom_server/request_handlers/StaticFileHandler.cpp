@@ -1,6 +1,6 @@
 #include "../headers/StaticFileHandler.h"
 #include "../headers/ChunkedResponse.h"
-#include "../headers/CorsHelper.h"
+#include "../headers/SecurityHeaders.h"
 
 #include <algorithm>
 #include <chrono>
@@ -68,7 +68,7 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
 
   if (!file_provider.exists(asset_path)) {
     res->writeStatus("404 Not Found");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("Not Found");
     return;
   }
@@ -88,7 +88,7 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
 
   if (etag_match || not_modified) {
     res->writeStatus("304 Not Modified");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     if (etag_match) { res->writeHeader("ETag", etag); }
     res->end();
     return;
@@ -98,7 +98,7 @@ void handleStaticFile(ResponseType *res, RequestType *req, const phantomchat::ut
   // Original bytes are discarded for compressed files, so always serve gzip
   const bool serve_gzip = file_provider.hasCompressed(asset_path);
 
-  phantomchat::cors::writeHeaders(res, req);
+  phantomchat::security::writeHeaders(res, req);
   res->writeHeader("Content-Type", file_provider.mimeType(asset_path));
   res->writeHeader("Cache-Control", "public, max-age=7200");
   res->writeHeader("ETag", etag);

@@ -1,5 +1,5 @@
 #include "../headers/DocumentHandler.h"
-#include "../headers/CorsHelper.h"
+#include "../headers/SecurityHeaders.h"
 
 #include <filesystem>
 #include <memory>
@@ -29,13 +29,13 @@ void handleUploadDocument(APP_TYPE &app,
   auto content_length = str_to_long(req->getHeader("content-length"));
   if (content_length == 0) {
     res->writeStatus("400 Bad Request");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("Invalid Content-Length");
     return;
   }
   if (content_length > max_upload_size_bytes) {
     res->writeStatus("413 Payload Too Large");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end();
     return;
   }
@@ -46,14 +46,14 @@ void handleUploadDocument(APP_TYPE &app,
 
   if (room_name.empty() || user_id.empty()) {
     res->writeStatus("400 Bad Request");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("Headers missing x-room-name or x-user-uuid");
     return;
   }
 
   if (!room_manager.isUserMemberOfRoom({ .room_name = room_name, .user_uuid = user_id })) {
     res->writeStatus("403 Forbidden");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("User is not a member of the specified room");
     return;
   }
@@ -63,7 +63,7 @@ void handleUploadDocument(APP_TYPE &app,
     std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path) / room_name / safe_file_name;
   std::filesystem::create_directories(upload_path.parent_path());
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
-  auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
+  auto resolved_origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
   auto file_context =
     std::make_shared<FileContext<APP_TYPE>>(app, upload_path.string(), room_name, user_id, is_poster, resolved_origin);
   auto bytes_received = std::make_shared<size_t>(0);
@@ -98,7 +98,7 @@ void handleDownloadDocument(APP_TYPE &app,
 
   if (safe_file_name.empty()) {
     res->writeStatus("400 Bad Request");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("Missing filename");
     return;
   }
@@ -108,7 +108,7 @@ void handleDownloadDocument(APP_TYPE &app,
   std::string safe_room_name = std::filesystem::path(room_name).filename().string();
   if (safe_room_name.empty()) {
     res->writeStatus("400 Bad Request");
-    phantomchat::cors::writeHeaders(res, req);
+    phantomchat::security::writeHeaders(res, req);
     res->end("Missing room parameter");
     return;
   }
@@ -117,7 +117,7 @@ void handleDownloadDocument(APP_TYPE &app,
   auto download_path = std::filesystem::path(phantomchat::config::AppSettings::getInstance().upload_path)
                        / safe_room_name / safe_file_name;
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
-  auto resolved_origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
+  auto resolved_origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
   auto file_context = std::make_shared<FileContext<APP_TYPE>>(
     app, download_path.string(), safe_room_name, "", is_poster, resolved_origin);
 
