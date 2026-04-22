@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <phantomchat/services/CryptoRoom.h>
 #include <phantomchat/services/RoomManager.h>
+#include <ranges>
 
 namespace phantomchat::services {
 
@@ -89,25 +90,32 @@ void RoomManager::setUserStatus(const SetUserStatusArgs &args)
 std::vector<std::string> RoomManager::getIdleMembers(const std::string &room_name,
   std::chrono::seconds min_push_interval) const
 {
-  std::vector<std::string> result;
   std::shared_lock<std::shared_mutex> lock(rooms_mutex);
 
   auto it = rooms.find(room_name);
-  if (it != rooms.end()) {
+  if (it == rooms.end()) { return {}; }
 
-    const auto now = std::chrono::system_clock::now();
-    const auto cutoff = now - min_push_interval;
+  const auto now = std::chrono::system_clock::now();
+  const auto cutoff = now - min_push_interval;
 
-    const auto &room = it->second;
+  const auto &members = it->second.members;
 
-    for (const auto &member : room.members) {
-      if (member.status != contracts::UserStatus::Idle) continue;
-      if (member.fcm_token.empty()) continue;
-      if (member.last_push_notification_timestamp > cutoff) continue;
+  auto is_idle = [](const auto &member) { return member.status == contracts::UserStatus::Idle; };
 
-      result.push_back(member.fcm_token);
-    }
-  }
+  auto has_fcm_token = [](const auto &member) { return !member.fcm_token.empty(); };
+
+  auto is_outdated = [cutoff](const auto &member) { return member.last_push_notification_timestamp <= cutoff; };
+
+  // Pipeline with chained filters
+  auto idle_tokens = members |//
+                     std::views::filter(is_idle) |//
+                     std::views::filter(has_fcm_token) |//
+                     std::views::filter(is_outdated) |//
+                     std::views::transform(&contracts::Member::fcm_token);
+
+  std::vector<std::string> result(members.size());
+  std::ranges::copy(idle_tokens, std::back_inserter(result));
+
   return result;
 }
 
