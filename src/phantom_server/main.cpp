@@ -1,5 +1,6 @@
-#include "headers/CorsHelper.h"
 #include "headers/DocumentHandler.h"
+#include "headers/PushNotificationProcessor.h"
+#include "headers/SecurityHeaders.h"
 #include "headers/SocketRequestHandler.h"
 #include "headers/StaticFileHandler.h"
 #include "internal_use_only/config.hpp"
@@ -8,7 +9,6 @@
 #include <fmt/core.h>
 #include <fmt/std.h>
 #include <optional>
-#include "headers/PushNotificationProcessor.h"
 #include <phantomchat/config/AppSettings.h>
 #include <phantomchat/contracts/PerSocketData.h>
 #include <phantomchat/services/CryptoRoom.h>
@@ -37,13 +37,19 @@ void setup_rest(uWS::TemplatedApp<SSL> &app,
     phantomchat::handlers::handleDownloadDocument(app, res, req, download_task_queue);
   };
   auto handle_options = [](auto *res, auto *req) {
-    auto origin = phantomchat::cors::resolveOrigin(req->getHeader("origin"));
+    auto origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
     res->writeStatus("204 No Content");
-    phantomchat::cors::writePreflightHeaders(res, origin);
+    phantomchat::security::writePreflightHeaders(res, origin);
     res->end();
   };
 
   app.options("/*", handle_options)
+    .get("/health",
+      [](auto *res, auto *) {
+        res->writeStatus("200 OK");
+        res->writeHeader("Content-Type", "text/plain; charset=utf-8");
+        res->end("Fantom.chat is alive and working perfectly 👻🚀");
+      })
     .get("/download-document/:room/:filename", handle_download_document)
     .post("/upload-document/:filename", handle_upload_document)
     .get("/*", handle_static_file_with_cache);
@@ -57,10 +63,10 @@ void setup_websocket(APP_TYPE &app,
 {
   app.template ws<phantomchat::contracts::PerSocketData>("/room",
     { .open = [](auto *) {},
-      .message = [&room_manager, &event_logger, &push_notification_queue, &app](
-                   auto *ws, std::string_view msg, uWS::OpCode) {
-        phantomchat::handlers::handleMessage(app, ws, room_manager, event_logger, push_notification_queue, msg);
-      },
+      .message =
+        [&room_manager, &event_logger, &push_notification_queue, &app](auto *ws, std::string_view msg, uWS::OpCode) {
+          phantomchat::handlers::handleMessage(app, ws, room_manager, event_logger, push_notification_queue, msg);
+        },
       .close =
         [&room_manager, &event_logger, &app](auto *ws, int, std::string_view) {
           const bool is_client_initiated_leave = false;

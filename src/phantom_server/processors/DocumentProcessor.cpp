@@ -1,6 +1,6 @@
 #include "../headers/DocumentProcessor.h"
 #include "../headers/ChunkedResponse.h"
-#include "../headers/CorsHelper.h"
+#include "../headers/SecurityHeaders.h"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -47,7 +47,7 @@ std::jthread uploadDocumentBackgroundProcess(moodycamel::BlockingConcurrentQueue
 
       app.getLoop()->defer([&app, res = task.res, &event_logger, context_ptr] {
         res->writeStatus("200 OK");
-        phantomchat::cors::writeHeaders(res, context_ptr->cors_origin);
+        phantomchat::security::writeHeaders(res, context_ptr->cors_origin);
         res->end("File uploaded successfully");
 
 
@@ -87,7 +87,7 @@ std::jthread downloadDocumentBackgroundProcess(
           auto ptr = ctx.lock();
           if (ptr && !ptr->aborted) {
             res->writeStatus("404 Not Found");
-            phantomchat::cors::writeHeaders(res, ptr->cors_origin);
+            phantomchat::security::writeHeaders(res, ptr->cors_origin);
             res->end("File not found");
           }
         });
@@ -106,7 +106,7 @@ std::jthread downloadDocumentBackgroundProcess(
       app.getLoop()->defer(
         [res = task.res, bytes, cors_origin = context_ptr->cors_origin, filename = context_ptr->filename]() {
           res->writeStatus("200 OK");
-          phantomchat::cors::writeHeaders(res, cors_origin);
+          phantomchat::security::writeHeaders(res, cors_origin);
 
           phantomchat::utils::FileProvider file_provider;
           res->writeHeader("Content-Type", file_provider.mimeType(filename));
