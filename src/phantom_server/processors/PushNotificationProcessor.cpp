@@ -21,14 +21,20 @@ std::jthread pushNotificationBackgroundProcess(moodycamel::BlockingConcurrentQue
         bool token_refreshed = false;
 
         for (const auto &fcm_token : task.recipients) {
-          auto result = services::firebase::send_fcm_message(
-            access_token, fb.project_id, fcm_token, task.title, task.body, task.icon);
+        retry:
+          auto result = services::firebase::send_fcm_message({
+            .access_token = access_token,
+            .project_id = fb.project_id,
+            .fcm_token = fcm_token,
+            .title = task.title,
+            .body = task.body,
+            .icon = task.icon,
+          });
 
           if (result == services::firebase::FcmSendResult::Unauthorized && !token_refreshed) {
             access_token = services::firebase::fetch_access_token(fb).token;
             token_refreshed = true;
-            result = services::firebase::send_fcm_message(
-              access_token, fb.project_id, fcm_token, task.title, task.body, task.icon);
+            goto retry;
           }
 
           if (result == services::firebase::FcmSendResult::Success) {

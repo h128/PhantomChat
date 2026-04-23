@@ -39,9 +39,7 @@ void handleSendMessage(APP_TYPE &,
   const SendMessageRequest *request)
 {
   auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->room_name.empty() || socket_data->user_uuid.empty()) {
-    throw std::invalid_argument("User not in a room");
-  }
+  if (socket_data->isEmpty()) { throw std::invalid_argument("User not in a room"); }
   SendMessageResponse response;
   response.request_uuid = request->request_uuid;
   response.message = request->message;
@@ -56,11 +54,13 @@ void handleSendMessage(APP_TYPE &,
   if (fb.enabled) {
     auto idle_members = room_manager.getIdleMembers(topic, std::chrono::seconds{ fb.min_push_interval_seconds });
     if (!idle_members.empty()) {
-      push_notification_queue.enqueue({ .room_name = topic,
+      push_notification_queue.enqueue({
+        .room_name = topic,
         .recipients = std::move(idle_members),
         .title = fmt::format("New message in {}", topic),
         .body = fmt::format("{} sent a message", sender_uuid),
-        .icon = "https://fantom.chat/comment.png" });
+        .icon = "https://fantom.chat/comment.png"//
+      });
     }
   }
 }
@@ -137,9 +137,11 @@ void handleJoinOrCreateRoom(APP_TYPE &,
   response.request_uuid = request->request_uuid;
   response.room_name = request->room_name;
 
-  response.room_key = crypto_room::encryptRoomKey({ .room_key = result.room_key,
+  response.room_key = crypto_room::encryptRoomKey({ //
+    .room_key = result.room_key,
     .user_public_key_hex = request->public_key,
-    .server_key_pair = result.server_key_pair });
+    .server_secret_key = result.server_key_pair.secret_key });
+
   response.server_pub_key = result.server_key_pair.public_key;
   response.room_created = result.room_created;
   response.members = result.members;

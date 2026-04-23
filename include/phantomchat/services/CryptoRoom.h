@@ -2,6 +2,7 @@
 
 #include <phantomchat/phantom_core_export.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace phantomchat::services::crypto_room {
@@ -23,14 +24,14 @@ PHANTOM_CORE_EXPORT KeyPair genNewKeyPair();
 
 struct PHANTOM_CORE_EXPORT EncryptRoomArgs
 {
-  std::string room_key;
-  std::string user_public_key_hex;
-  KeyPair server_key_pair;
+  std::string_view room_key;
+  std::string_view user_public_key_hex;
+  std::string_view server_secret_key;
 };
 
 // Encrypt a room key using the server's key pair and the user's hex-encoded public key.
 // Returns a hex-encoded ciphertext (crypto_box_easy with zero nonce).
-PHANTOM_CORE_EXPORT std::string encryptRoomKey(const EncryptRoomArgs &args);
+PHANTOM_CORE_EXPORT std::string encryptRoomKey(EncryptRoomArgs args);
 
 PHANTOM_CORE_EXPORT std::vector<unsigned char> rs256_sign(std::string_view message, std::string_view privateKey);
 
