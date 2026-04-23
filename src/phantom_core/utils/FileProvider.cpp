@@ -1,11 +1,11 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <phantomchat/utils/FileProvider.hpp>
+#include <ranges>
+#include <stdexcept>
 #include <string_view>
 #include <unordered_set>
-
-#include <phantomchat/utils/FileProvider.hpp>
-#include <stdexcept>
 #include <zlib.h>
 
 namespace phantomchat::utils {
@@ -32,29 +32,32 @@ std::uintmax_t FileProvider::size(const std::string &path) const { return std::f
 std::string_view FileProvider::mimeType(const std::string &path) const
 {
   auto extension = std::filesystem::path(path).extension().string();
-  std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) {
-    return static_cast<char>(std::tolower(character));
-  });
+  std::ranges::transform(
+    extension, extension.begin(), [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
 
-  if (const auto it = mime_types.find(extension); it != mime_types.end()) { return it->second; }
+  auto it = std::ranges::lower_bound(mime_types,
+    extension,
+    {},// Default comparator (less than)
+    &std::pair<std::string_view, std::string_view>::first// Projection
+  );
 
-  return "application/octet-stream";
+  if (it != mime_types.end() && it->first == extension) { return it->second; }
+  return "application/octet-stream";// Default fallback
 }
 
 std::filesystem::file_time_type FileProvider::lastWriteTime(const std::string &path) const
-{
-  return std::filesystem::last_write_time(path);
-}
+{ return std::filesystem::last_write_time(path); }
 
 bool FileProvider::exists(const std::string &path) const { return std::filesystem::exists(path); }
 
 std::vector<char> FileProvider::compressFile(const std::string &path) const
 {
-  auto isCompressibleExtension = [](std::string_view ext) {
-    static const std::unordered_set<std::string_view> compressible = {
-      ".html", ".htm", ".css", ".js", ".json", ".svg", ".txt", ".xml"
+  auto isCompressibleExtension = [](std::string_view ext) -> bool {
+    // Keep this sorted alphabetically
+    static constexpr std::array<std::string_view, 8> compressible = {
+      ".css", ".htm", ".html", ".js", ".json", ".svg", ".txt", ".xml"
     };
-    return compressible.contains(ext);
+    return std::ranges::binary_search(compressible, ext);
   };
 
   const auto ext = std::filesystem::path(path).extension().string();

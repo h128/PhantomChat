@@ -166,19 +166,13 @@ namespace {
 }// anonymous namespace
 
 
-FcmSendResult send_fcm_message(std::string_view access_token,
-  std::string_view project_id,
-  std::string_view fcm_token,
-  std::string_view title,
-  std::string_view body,
-  std::string_view icon)
+FcmSendResult send_fcm_message(const FcmMessage &msg)
 {
-  if (access_token.empty() || project_id.empty() || fcm_token.empty()) return FcmSendResult::Failed;
+  if (msg.access_token.empty() || msg.project_id.empty() || msg.fcm_token.empty()) return FcmSendResult::Failed;
 
-
-  const std::string url = fmt::format("https://fcm.googleapis.com/v1/projects/{}/messages:send", project_id);
-  const std::string payload = build_fcm_payload(fcm_token, title, body, icon);
-  const auto response = http_post_json(url, access_token, payload);
+  const std::string url = fmt::format("https://fcm.googleapis.com/v1/projects/{}/messages:send", msg.project_id);
+  const std::string payload = build_fcm_payload(msg.fcm_token, msg.title, msg.body, msg.icon);
+  const auto response = http_post_json(url, msg.access_token, payload);
 
   if (response.status == 401) return FcmSendResult::Unauthorized;
   if (response.status >= 200 && response.status < 300) return FcmSendResult::Success;

@@ -33,9 +33,6 @@ CacheFileProvider::CacheFileProvider(std::string root_path, bool gzip_compressio
     if (!entry.is_regular_file()) { continue; }
 
     const auto absolute_path = entry.path();
-    // Skip .gz files that we may have written previously
-    if (absolute_path.extension() == ".gz") { continue; }
-
     const auto relative_path = std::filesystem::relative(absolute_path, root).generic_string();
     const auto absolute_path_string = absolute_path.string();
 

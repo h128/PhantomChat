@@ -23,11 +23,16 @@ PHANTOM_CORE_EXPORT AccessToken fetch_access_token(const phantomchat::config::Fi
 
 enum class FcmSendResult { Success, Unauthorized, Failed };
 
-PHANTOM_CORE_EXPORT FcmSendResult send_fcm_message(std::string_view access_token,
-  std::string_view project_id,
-  std::string_view fcm_token,
-  std::string_view title,
-  std::string_view body,
-  std::string_view icon = {});
+struct PHANTOM_CORE_EXPORT FcmMessage
+{
+  std::string_view access_token;
+  std::string_view project_id;
+  std::string_view fcm_token;
+  std::string_view title;
+  std::string_view body;
+  std::string_view icon = {};
+};
+
+PHANTOM_CORE_EXPORT FcmSendResult send_fcm_message(const FcmMessage &msg);
 
 }// namespace phantomchat::services::firebase

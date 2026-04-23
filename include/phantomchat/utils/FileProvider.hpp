@@ -1,11 +1,11 @@
 #ifndef PHANTOMCHAT_UTILS_FILEPROVIDER_HPP
 #define PHANTOMCHAT_UTILS_FILEPROVIDER_HPP
 
+#include <array>
 #include <phantomchat/phantom_core_export.hpp>
 #include <phantomchat/utils/IFileProvider.hpp>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 namespace phantomchat::utils {
 class PHANTOM_CORE_EXPORT FileProvider final : public IFileProvider
@@ -24,27 +24,28 @@ public:
   bool exists(const std::string &path) const override;
 
 private:
-  static const inline std::unordered_map<std::string_view, std::string_view> mime_types = {
-    { ".html", "text/html; charset=utf-8" },
-    { ".htm", "text/html; charset=utf-8" },
-    { ".txt", "text/plain; charset=utf-8" },
-    { ".css", "text/css; charset=utf-8" },
-    { ".js", "application/javascript; charset=utf-8" },
-    { ".json", "application/json; charset=utf-8" },
-    { ".ndjson", "application/x-ndjson; charset=utf-8" },
-    { ".svg", "image/svg+xml" },
-    { ".png", "image/png" },
-    { ".jpg", "image/jpeg" },
-    { ".jpeg", "image/jpeg" },
-    { ".gif", "image/gif" },
-    { ".webp", "image/webp" },
-    { ".ico", "image/x-icon" },
-    { ".bmp", "image/bmp" },
-    { ".otf", "font/otf" },
-    { ".sfnt", "font/sfnt" },
-    { ".ttf", "font/ttf" },
-    { ".woff", "font/woff" },
-    { ".woff2", "font/woff2" },
+  static constexpr std::array<std::pair<std::string_view, std::string_view>, 20> mime_types{
+    { // Sorted by extension for binary search
+      { ".bmp", "image/bmp" },
+      { ".css", "text/css; charset=utf-8" },
+      { ".gif", "image/gif" },
+      { ".htm", "text/html; charset=utf-8" },
+      { ".html", "text/html; charset=utf-8" },
+      { ".ico", "image/x-icon" },
+      { ".jpeg", "image/jpeg" },// e < p, so jpeg comes before jpg
+      { ".jpg", "image/jpeg" },
+      { ".js", "application/javascript; charset=utf-8" },
+      { ".json", "application/json; charset=utf-8" },
+      { ".ndjson", "application/x-ndjson; charset=utf-8" },
+      { ".otf", "font/otf" },
+      { ".png", "image/png" },
+      { ".sfnt", "font/sfnt" },
+      { ".svg", "image/svg+xml" },
+      { ".ttf", "font/ttf" },
+      { ".txt", "text/plain; charset=utf-8" },
+      { ".webp", "image/webp" },
+      { ".woff", "font/woff" },
+      { ".woff2", "font/woff2" } }
   };
 };
 }// namespace phantomchat::utils
