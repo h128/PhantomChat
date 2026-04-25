@@ -14,14 +14,14 @@ std::vector<char> FileProvider::readAllBytes(const std::string &path) const
   std::ifstream file(path, std::ios::binary | std::ios::ate);
   if (!file) { throw std::runtime_error("Could not open file: " + path); }
 
-  const std::streamsize size = file.tellg();
-  if (size < 0) { throw std::runtime_error("Could not determine file size: " + path); }
+  const std::streamsize file_size = file.tellg();
+  if (file_size < 0) { throw std::runtime_error("Could not determine file size: " + path); }
 
-  std::vector<char> buffer(static_cast<size_t>(size));
+  std::vector<char> buffer(static_cast<size_t>(file_size));
 
   file.seekg(0, std::ios::beg);
 
-  if (size > 0 && !file.read(buffer.data(), size)) { throw std::runtime_error("Could not read file: " + path); }
+  if (file_size > 0 && !file.read(buffer.data(), file_size)) { throw std::runtime_error("Could not read file: " + path); }
 
   return buffer;
 }

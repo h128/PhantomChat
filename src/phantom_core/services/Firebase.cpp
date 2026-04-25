@@ -180,18 +180,18 @@ FcmSendResult send_fcm_message(const FcmMessage &msg)
   return FcmSendResult::Failed;
 }
 
-AccessToken fetch_access_token(const phantomchat::config::FirebaseSettings &fb)
+AccessToken fetch_access_token(const phantomchat::config::FirebaseSettings &settings)
 {
-  if (fb.private_key.empty()) throw std::invalid_argument{ "firebase_settings.private_key is empty" };
-  if (fb.client_email.empty()) throw std::invalid_argument{ "firebase_settings.client_email is empty" };
-  if (fb.token_uri.empty()) throw std::invalid_argument{ "firebase_settings.token_uri is empty" };
+  if (settings.private_key.empty()) throw std::invalid_argument{ "firebase_settings.private_key is empty" };
+  if (settings.client_email.empty()) throw std::invalid_argument{ "firebase_settings.client_email is empty" };
+  if (settings.token_uri.empty()) throw std::invalid_argument{ "firebase_settings.token_uri is empty" };
 
   static constexpr auto GRANT_TYPE = "urn:ietf:params:oauth:grant-type:jwt-bearer"sv;
 
-  const auto &[jwt, issued_at] = build_jwt(fb);
+  const auto &[jwt, issued_at] = build_jwt(settings);
 
   // MIME handles percent-encoding internally
-  const std::string response = http_post_form(fb.token_uri,
+  const std::string response = http_post_form(settings.token_uri,
     {
       { "grant_type", GRANT_TYPE },
       { "assertion", jwt },

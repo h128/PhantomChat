@@ -31,6 +31,8 @@ macro(phantomchat_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
           # ignores static_assert type failures
           --suppress=knownConditionTrueFalse
           --inconclusive
+          --suppress=constParameterReference
+          --suppress=constVariableReference
           --suppress=${SUPPRESS_DIR})
     else()
       # if the user provides a CPPCHECK_OPTIONS with a template specified, it will override this template

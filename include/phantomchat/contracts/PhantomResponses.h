@@ -24,7 +24,7 @@ public:
   PhantomResponseBase &operator=(PhantomResponseBase &&) = default;
 
   std::string request_uuid;
-  ResponseStatus status;
+  ResponseStatus status{};
   std::string message;
 };
 

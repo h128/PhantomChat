@@ -72,7 +72,10 @@ const CachedFileEntry &CacheFileProvider::getEntry(const std::string &path) cons
 }
 
 std::string_view CacheFileProvider::mimeType(const std::string &path) const noexcept
-{ return getEntry(path).mime_type; }
+{
+  const auto it = findFile(path);
+  return it != cache_.end() ? it->second.mime_type : std::string_view{};
+}
 
 bool CacheFileProvider::exists(const std::string &path) const noexcept { return findFile(path) != cache_.end(); }
 
