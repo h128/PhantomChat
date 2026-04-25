@@ -29,7 +29,7 @@ std::vector<char> FileProvider::readAllBytes(const std::string &path) const
 
 std::uintmax_t FileProvider::size(const std::string &path) const { return std::filesystem::file_size(path); }
 
-std::string_view FileProvider::mimeType(const std::string &path) const
+std::string_view FileProvider::mimeType(const std::string &path) const noexcept
 {
   auto extension = std::filesystem::path(path).extension().string();
   std::ranges::transform(
@@ -48,11 +48,11 @@ std::string_view FileProvider::mimeType(const std::string &path) const
 std::filesystem::file_time_type FileProvider::lastWriteTime(const std::string &path) const
 { return std::filesystem::last_write_time(path); }
 
-bool FileProvider::exists(const std::string &path) const { return std::filesystem::exists(path); }
+bool FileProvider::exists(const std::string &path) const noexcept { return std::filesystem::exists(path); }
 
 std::vector<char> FileProvider::compressFile(const std::string &path) const
 {
-  auto isCompressibleExtension = [](std::string_view ext) -> bool {
+  auto isCompressibleExtension = [](std::string_view ext) noexcept -> bool {
     // Keep this sorted alphabetically
     static constexpr std::array<std::string_view, 8> compressible = {
       ".css", ".htm", ".html", ".js", ".json", ".svg", ".txt", ".xml"
