@@ -5,7 +5,6 @@
 #include <ranges>
 #include <stdexcept>
 #include <string_view>
-#include <unordered_set>
 #include <zlib.h>
 
 namespace phantomchat::utils {
@@ -15,21 +14,21 @@ std::vector<char> FileProvider::readAllBytes(const std::string &path) const
   std::ifstream file(path, std::ios::binary | std::ios::ate);
   if (!file) { throw std::runtime_error("Could not open file: " + path); }
 
-  const std::streamsize size = file.tellg();
-  if (size < 0) { throw std::runtime_error("Could not determine file size: " + path); }
+  const std::streamsize file_size = file.tellg();
+  if (file_size < 0) { throw std::runtime_error("Could not determine file size: " + path); }
 
-  std::vector<char> buffer(static_cast<size_t>(size));
+  std::vector<char> buffer(static_cast<size_t>(file_size));
 
   file.seekg(0, std::ios::beg);
 
-  if (size > 0 && !file.read(buffer.data(), size)) { throw std::runtime_error("Could not read file: " + path); }
+  if (file_size > 0 && !file.read(buffer.data(), file_size)) { throw std::runtime_error("Could not read file: " + path); }
 
   return buffer;
 }
 
 std::uintmax_t FileProvider::size(const std::string &path) const { return std::filesystem::file_size(path); }
 
-std::string_view FileProvider::mimeType(const std::string &path) const
+std::string_view FileProvider::mimeType(const std::string &path) const noexcept
 {
   auto extension = std::filesystem::path(path).extension().string();
   std::ranges::transform(
@@ -48,11 +47,11 @@ std::string_view FileProvider::mimeType(const std::string &path) const
 std::filesystem::file_time_type FileProvider::lastWriteTime(const std::string &path) const
 { return std::filesystem::last_write_time(path); }
 
-bool FileProvider::exists(const std::string &path) const { return std::filesystem::exists(path); }
+bool FileProvider::exists(const std::string &path) const noexcept { return std::filesystem::exists(path); }
 
 std::vector<char> FileProvider::compressFile(const std::string &path) const
 {
-  auto isCompressibleExtension = [](std::string_view ext) -> bool {
+  auto isCompressibleExtension = [](std::string_view ext) noexcept -> bool {
     // Keep this sorted alphabetically
     static constexpr std::array<std::string_view, 8> compressible = {
       ".css", ".htm", ".html", ".js", ".json", ".svg", ".txt", ".xml"

@@ -69,9 +69,9 @@ void SignalCallRequest::validate()
   }
 }
 
-PhantomRequestPtr from_json(std::string_view json_string)
+PhantomRequestPtr from_json(std::string_view jsonString)
 {
-  json json_data = json::parse(json_string);
+  json json_data = json::parse(jsonString);
 
   if (!json_data.contains("command")) { throw std::invalid_argument("Missing 'command' field in JSON"); }
 

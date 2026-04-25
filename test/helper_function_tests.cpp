@@ -15,9 +15,9 @@ TEST_CASE("trim removes leading and trailing whitespace", "[helper][trim]")
 
 TEST_CASE("trim handles tabs and newlines", "[helper][trim]")
 {
-  std::string s = "\t\n hello \n\t";
+  std::string s = "\t\n hello world \n\t";
   trim(s);
-  REQUIRE(s == "hello");
+  REQUIRE(s == "hello world");
 }
 
 TEST_CASE("trim leaves inner spaces untouched", "[helper][trim]")
@@ -85,9 +85,7 @@ TEST_CASE("url_decode decodes percent-encoded ASCII", "[helper][url_decode]")
 }
 
 TEST_CASE("url_decode decodes plus sign as space", "[helper][url_decode]")
-{
-  REQUIRE(url_decode("hello+world") == "hello world");
-}
+{ REQUIRE(url_decode("hello+world") == "hello world"); }
 
 TEST_CASE("url_decode decodes uppercase hex", "[helper][url_decode]") { REQUIRE(url_decode("%41%42%43") == "ABC"); }
 
@@ -100,9 +98,7 @@ TEST_CASE("url_decode decodes UTF-8 multi-byte sequence", "[helper][url_decode]"
 }
 
 TEST_CASE("url_decode returns empty on null-byte injection", "[helper][url_decode]")
-{
-  REQUIRE(url_decode("hello%00world").empty());
-}
+{ REQUIRE(url_decode("hello%00world").empty()); }
 
 TEST_CASE("url_decode leaves unencoded strings unchanged", "[helper][url_decode]")
 {

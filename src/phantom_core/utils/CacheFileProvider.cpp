@@ -71,7 +71,11 @@ const CachedFileEntry &CacheFileProvider::getEntry(const std::string &path) cons
   return it->second;
 }
 
-std::string_view CacheFileProvider::mimeType(const std::string &path) const { return getEntry(path).mime_type; }
+std::string_view CacheFileProvider::mimeType(const std::string &path) const noexcept
+{
+  const auto it = findFile(path);
+  return it != cache_.end() ? it->second.mime_type : std::string_view{};
+}
 
 bool CacheFileProvider::exists(const std::string &path) const noexcept { return findFile(path) != cache_.end(); }
 
@@ -83,9 +87,6 @@ bool CacheFileProvider::hasCompressed(const std::string &path) const noexcept
 
 const std::vector<char> &CacheFileProvider::readCompressedBytesRef(const std::string &path) const
 { return getEntry(path).compressed_bytes; }
-
-std::uintmax_t CacheFileProvider::compressedSize(const std::string &path) const
-{ return getEntry(path).compressed_bytes.size(); }
 
 CacheFileProvider::CacheIterator CacheFileProvider::findFile(const std::string &path) const
 { return cache_.find(normalizePathKey(path)); }

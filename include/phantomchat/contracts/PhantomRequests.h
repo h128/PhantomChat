@@ -34,7 +34,7 @@ public:
   PhantomRequestBase &operator=(PhantomRequestBase &&) = default;
 
   std::string request_uuid;
-  Command command;
+  Command command{};
 
 
   virtual void validate() = 0;
@@ -99,7 +99,7 @@ struct IceCandidate
 {
   std::string candidate;
   std::string sdpMid;
-  int sdpMLineIndex;
+  int sdpMLineIndex = 0;
   std::optional<std::string> usernameFragment;
 };
 
@@ -108,7 +108,7 @@ struct SignalCallRequest final : public PhantomRequestBase
 {
   SignalCallRequest() { command = Command::SignalCall; }
 
-  SignalCallAction action;// The Enum we created earlier
+  SignalCallAction action{};// The Enum we created earlier
   SignalingData data;// The structured data field
 
   void validate() override;

@@ -13,16 +13,12 @@ namespace phantomchat::contracts {
 void to_json(nlohmann::json &j, const Member &member);
 void from_json(const nlohmann::json &j, Member &member);
 
-void to_json(nlohmann::json &j, const JoinOrCreateRoomRequest &request);
 void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request);
 
-void to_json(nlohmann::json &j, const SendMessageRequest &request);
 void from_json(const nlohmann::json &j, SendMessageRequest &request);
 
-void to_json(nlohmann::json &j, const LeaveRoomRequest &request);
 void from_json(const nlohmann::json &j, LeaveRoomRequest &request);
 
-void to_json(nlohmann::json &j, const SetUserStatusRequest &request);
 void from_json(const nlohmann::json &j, SetUserStatusRequest &request);
 
 void to_json(nlohmann::json &j, const SessionDescription &sd);
@@ -31,7 +27,6 @@ void from_json(const nlohmann::json &j, SessionDescription &sd);
 void to_json(nlohmann::json &j, const IceCandidate &ic);
 void from_json(const nlohmann::json &j, IceCandidate &ic);
 
-void to_json(nlohmann::json &j, const SignalCallRequest &request);
 void from_json(const nlohmann::json &j, SignalCallRequest &request);
 
 void to_json(nlohmann::json &j, const JoinOrCreateRoomResponse &response);
@@ -51,7 +46,6 @@ void to_json(nlohmann::json &j, const SignalCallRelayEvent &event);
 
 
 namespace phantomchat::config {
-void to_json(nlohmann::json &j, const AppSettings &settings);
 void from_json(const nlohmann::json &j, FirebaseSettings &settings);
 void from_json(const nlohmann::json &j, AppSettings &settings);
 }// namespace phantomchat::config

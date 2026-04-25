@@ -17,10 +17,10 @@ struct PHANTOM_CORE_EXPORT KeyPair
 };
 
 // Generate a symmetric room key. Returns a hex-encoded 32-byte random key.
-PHANTOM_CORE_EXPORT std::string generateRoomKey();
+PHANTOM_CORE_EXPORT [[nodiscard]] std::string generateRoomKey();
 
 // Generate a new asymmetric keypair. Returns hex-encoded public and secret keys.
-PHANTOM_CORE_EXPORT KeyPair genNewKeyPair();
+PHANTOM_CORE_EXPORT [[nodiscard]] KeyPair genNewKeyPair();
 
 struct PHANTOM_CORE_EXPORT EncryptRoomArgs
 {
@@ -31,8 +31,10 @@ struct PHANTOM_CORE_EXPORT EncryptRoomArgs
 
 // Encrypt a room key using the server's key pair and the user's hex-encoded public key.
 // Returns a hex-encoded ciphertext (crypto_box_easy with zero nonce).
-PHANTOM_CORE_EXPORT std::string encryptRoomKey(EncryptRoomArgs args);
+PHANTOM_CORE_EXPORT [[nodiscard]] std::string encryptRoomKey(EncryptRoomArgs args);
 
-PHANTOM_CORE_EXPORT std::vector<unsigned char> rs256_sign(std::string_view message, std::string_view privateKey);
+PHANTOM_CORE_EXPORT [[nodiscard]] std::vector<unsigned char> rs256_sign(//
+  std::string_view message,
+  std::string_view privateKey);
 
 }// namespace phantomchat::services::crypto_room

@@ -27,23 +27,21 @@ class PHANTOM_CORE_EXPORT CacheFileProvider final : public IFileProvider
 public:
   explicit CacheFileProvider(std::string root_path, bool gzip_compression = false);
 
-  std::vector<char> readAllBytes(const std::string &path) const override;
+  [[nodiscard]] std::vector<char> readAllBytes(const std::string &path) const override;
 
-  const std::vector<char> &readBytesRef(const std::string &path) const;
+  [[nodiscard]] const std::vector<char> &readBytesRef(const std::string &path) const;
 
-  const std::vector<char> &readCompressedBytesRef(const std::string &path) const;
+  [[nodiscard]] const std::vector<char> &readCompressedBytesRef(const std::string &path) const;
 
-  bool hasCompressed(const std::string &path) const noexcept;
+  [[nodiscard]] bool hasCompressed(const std::string &path) const noexcept;
 
-  std::uintmax_t compressedSize(const std::string &path) const;
+  [[nodiscard]] std::uintmax_t size(const std::string &path) const override;
 
-  std::uintmax_t size(const std::string &path) const override;
+  [[nodiscard]] std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;
 
-  std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;
+  [[nodiscard]] std::string_view mimeType(const std::string &path) const noexcept override;
 
-  std::string_view mimeType(const std::string &path) const override;
-
-  bool exists(const std::string &path) const noexcept override;
+  [[nodiscard]] bool exists(const std::string &path) const noexcept override;
 
 private:
   using CacheIterator = std::unordered_map<std::string, CachedFileEntry>::const_iterator;

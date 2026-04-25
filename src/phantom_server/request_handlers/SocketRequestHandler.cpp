@@ -38,16 +38,16 @@ void handleSendMessage(APP_TYPE &,
   moodycamel::BlockingConcurrentQueue<PushNotificationTask> &push_notification_queue,
   const SendMessageRequest *request)
 {
-  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->isEmpty()) { throw std::invalid_argument("User not in a room"); }
+  const auto *session = get_session(ws);
+  if (session->isEmpty()) { throw std::invalid_argument("User not in a room"); }
   SendMessageResponse response;
   response.request_uuid = request->request_uuid;
   response.message = request->message;
 
   ws->send(json(response).dump(), uWS::OpCode::TEXT);
 
-  const std::string &topic = socket_data->room_name;
-  const std::string &sender_uuid = socket_data->user_uuid;
+  const std::string &topic = session->room_name;
+  const std::string &sender_uuid = session->user_uuid;
   dispatch_event(ws, event_logger, NewMessageReceivedEvent(sender_uuid, request->message), topic);
 
   const auto &fb = phantomchat::config::AppSettings::getInstance().firebase_settings;
@@ -68,12 +68,12 @@ void handleSendMessage(APP_TYPE &,
 template<typename APP_TYPE, typename WS_TYPE>
 void handleSetUserStatus(APP_TYPE &, WS_TYPE *ws, RoomManager &room_manager, const SetUserStatusRequest *request)
 {
-  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->isEmpty()) throw std::invalid_argument("User not in a room");
+  const auto *session = get_session(ws);
+  if (session->isEmpty()) throw std::invalid_argument("User not in a room");
 
   room_manager.setUserStatus({
-    .room_name = socket_data->room_name,
-    .user_uuid = socket_data->user_uuid,
+    .room_name = session->room_name,
+    .user_uuid = session->user_uuid,
     .status = request->status,
     .status_message = request->status_message,
   });
@@ -88,11 +88,11 @@ void handleLeaveRoom(APP_TYPE &app,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   bool is_client_initiated_leave)
 {
-  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->isEmpty()) return;
+  auto *session = get_session(ws);
+  if (session->isEmpty()) return;
 
-  const std::string &topic = socket_data->room_name;
-  const std::string &user_uuid = socket_data->user_uuid;
+  const std::string &topic = session->room_name;
+  const std::string &user_uuid = session->user_uuid;
 
   auto result = room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
@@ -110,7 +110,7 @@ void handleLeaveRoom(APP_TYPE &app,
   if (result == RoomManager::LeaveRoomResult::RoomEmptyAndDeleted) {
     event_logger.enqueue({ .room_name = topic, .delete_room_on_empty = true });
   }
-  socket_data->clear();
+  session->clear();
 }
 
 template<typename APP_TYPE, typename WS_TYPE>
@@ -120,9 +120,9 @@ void handleJoinOrCreateRoom(APP_TYPE &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const JoinOrCreateRoomRequest *request)
 {
-  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
+  auto *session = get_session(ws);
 
-  if (!socket_data->isEmpty()) {
+  if (!session->isEmpty()) {
     throw std::invalid_argument(
       "The user is already in another room; they should leave the current room before creating or joining a new one");
   }
@@ -148,7 +148,7 @@ void handleJoinOrCreateRoom(APP_TYPE &,
   response.message = result.room_created ? "Room created successfully" : "Joined room successfully";
 
   // Update socket data
-  socket_data->assign(request->user_uuid, request->room_name, request->public_key);
+  session->assign(request->user_uuid, request->room_name, request->public_key);
 
   // Subscribe to room updates
   ws->subscribe(request->room_name);
@@ -170,11 +170,11 @@ void handleSignalCall(APP_TYPE &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   const SignalCallRequest *request)
 {
-  auto *socket_data = static_cast<PerSocketData *>(ws->getUserData());
-  if (socket_data->isEmpty()) { throw std::invalid_argument("User not in a room"); }
+  const auto *session = get_session(ws);
+  if (session->isEmpty()) { throw std::invalid_argument("User not in a room"); }
 
-  const std::string &topic = socket_data->room_name;
-  const std::string &sender_uuid = socket_data->user_uuid;
+  const std::string &topic = session->room_name;
+  const std::string &sender_uuid = session->user_uuid;
 
   GeneralResponse resp("Signal call dispatched successfully", request->request_uuid);
   ws->send(json(resp).dump(), uWS::OpCode::TEXT);

@@ -5,12 +5,11 @@
 #include <string_view>
 namespace phantomchat::utils {
 
-std::size_t str_to_long(std::string_view sv);
-std::string base64url_encode(std::string_view s);
-std::string url_decode(std::string_view sv);
-void trim(std::string &s);
-bool is_safe(std::string_view sv);
-bool is_valid_hex(std::string_view sv, std::size_t expected_bytes);
-
+[[nodiscard]] std::size_t str_to_long(std::string_view sv) noexcept;
+[[nodiscard]] std::string base64url_encode(std::string_view s) noexcept;
+[[nodiscard]] std::string url_decode(std::string_view sv) noexcept;
+[[nodiscard]] bool is_safe(std::string_view sv) noexcept;
+[[nodiscard]] bool is_valid_hex(std::string_view sv, std::size_t expected_bytes) noexcept;
+void trim(std::string &s) noexcept;
 }// namespace phantomchat::utils
 #endif

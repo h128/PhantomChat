@@ -11,17 +11,12 @@ namespace phantomchat::utils {
 class PHANTOM_CORE_EXPORT FileProvider final : public IFileProvider
 {
 public:
-  std::vector<char> readAllBytes(const std::string &path) const override;
-
-  std::vector<char> compressFile(const std::string &path) const;
-
-  std::uintmax_t size(const std::string &path) const override;
-
-  std::string_view mimeType(const std::string &path) const override;
-
-  std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;
-
-  bool exists(const std::string &path) const override;
+  [[nodiscard]] std::vector<char> readAllBytes(const std::string &path) const override;
+  [[nodiscard]] std::vector<char> compressFile(const std::string &path) const;
+  [[nodiscard]] std::uintmax_t size(const std::string &path) const override;
+  [[nodiscard]] std::string_view mimeType(const std::string &path) const noexcept override;
+  [[nodiscard]] std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;
+  [[nodiscard]] bool exists(const std::string &path) const noexcept override;
 
 private:
   static constexpr std::array<std::pair<std::string_view, std::string_view>, 20> mime_types{
