@@ -35,8 +35,6 @@ public:
 
   [[nodiscard]] bool hasCompressed(const std::string &path) const noexcept;
 
-  [[nodiscard]] std::uintmax_t compressedSize(const std::string &path) const;
-
   [[nodiscard]] std::uintmax_t size(const std::string &path) const override;
 
   [[nodiscard]] std::filesystem::file_time_type lastWriteTime(const std::string &path) const override;

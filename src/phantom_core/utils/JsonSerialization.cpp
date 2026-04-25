@@ -30,17 +30,6 @@ void from_json(const nlohmann::json &j, Member &member)
   member.status_message = j.value("status_message", std::string{});
 }
 
-void to_json(nlohmann::json &j, const JoinOrCreateRoomRequest &request)
-{
-  j = nlohmann::json{ { "request_uuid", request.request_uuid },
-    { "user_uuid", request.user_uuid },
-    { "command", static_cast<int>(request.command) },
-    { "room_name", request.room_name },
-    { "public_key", request.public_key },
-    { "avatar_id", request.avatar_id },
-    { "display_name", request.display_name },
-    { "fcm_token", request.fcm_token } };
-}
 
 void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
 {
@@ -54,13 +43,6 @@ void from_json(const nlohmann::json &j, JoinOrCreateRoomRequest &request)
   request.fcm_token = j.value("fcm_token", std::string{});
 }
 
-void to_json(nlohmann::json &j, const SetUserStatusRequest &request)
-{
-  j = nlohmann::json{ { "request_uuid", request.request_uuid },
-    { "command", static_cast<int>(request.command) },
-    { "status", static_cast<int>(request.status) },
-    { "status_message", request.status_message } };
-}
 
 void from_json(const nlohmann::json &j, SetUserStatusRequest &request)
 {
@@ -70,12 +52,6 @@ void from_json(const nlohmann::json &j, SetUserStatusRequest &request)
   request.status_message = j.value("status_message", std::string{});
 }
 
-void to_json(nlohmann::json &j, const SendMessageRequest &request)
-{
-  j = nlohmann::json{ { "request_uuid", request.request_uuid },
-    { "command", static_cast<int>(request.command) },
-    { "message", request.message } };
-}
 
 void from_json(const nlohmann::json &j, SendMessageRequest &request)
 {
@@ -83,9 +59,6 @@ void from_json(const nlohmann::json &j, SendMessageRequest &request)
   request.command = static_cast<Command>(j.at("command").get<int>());
   request.message = j.at("message").get<std::string>();
 }
-
-void to_json(nlohmann::json &j, const LeaveRoomRequest &request)
-{ j = nlohmann::json{ { "request_uuid", request.request_uuid }, { "command", static_cast<int>(request.command) } }; }
 
 void from_json(const nlohmann::json &j, LeaveRoomRequest &request)
 {
@@ -154,23 +127,6 @@ void from_json(const nlohmann::json &j, IceCandidate &ic)
   }
 }
 
-void to_json(nlohmann::json &j, const SignalCallRequest &request)
-{
-  j = nlohmann::json{ { "request_uuid", request.request_uuid },
-    { "command", static_cast<int>(request.command) },
-    { "action", static_cast<int>(request.action) },
-    {
-      "data",
-      std::visit(
-        [](auto &&arg) -> nlohmann::json {
-          using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, SessionDescription> || std::is_same_v<T, IceCandidate>) return arg;
-          return nullptr;
-        },
-        request.data)
-      //
-    } };
-}
 
 void from_json(const nlohmann::json &j, SignalCallRequest &request)
 {
@@ -260,18 +216,6 @@ void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
 
 
 namespace phantomchat::config {
-void to_json(nlohmann::json &j, const AppSettings &settings)
-{
-  j = nlohmann::json{ { "listen_port", settings.listen_port },
-    { "ice_servers", settings.ice_servers },
-    { "ssl_certificate", settings.ssl_certificate },
-    { "ssl_certificate_key", settings.ssl_certificate_key },
-    { "gzip_compression", settings.gzip_compression },
-    { "worker_threads", settings.worker_threads },
-    { "web_root_path", settings.web_root_path },
-    { "upload_path", settings.upload_path },
-    { "cors_allowed_origins", settings.cors_allowed_origins } };
-}
 
 void from_json(const nlohmann::json &j, FirebaseSettings &fb)
 {

@@ -85,9 +85,6 @@ bool CacheFileProvider::hasCompressed(const std::string &path) const noexcept
 const std::vector<char> &CacheFileProvider::readCompressedBytesRef(const std::string &path) const
 { return getEntry(path).compressed_bytes; }
 
-std::uintmax_t CacheFileProvider::compressedSize(const std::string &path) const
-{ return getEntry(path).compressed_bytes.size(); }
-
 CacheFileProvider::CacheIterator CacheFileProvider::findFile(const std::string &path) const
 { return cache_.find(normalizePathKey(path)); }
 }// namespace phantomchat::utils

@@ -3,6 +3,7 @@
 #include <charconv>
 #include <openssl/evp.h>
 #include <phantomchat/utils/HelperFunctions.h>
+#include <ranges>
 
 namespace phantomchat::utils {
 
@@ -75,21 +76,25 @@ std::string base64url_encode(std::string_view s) noexcept
 
 void trim(std::string &s) noexcept
 {
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isspace(c); }));
-  s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) { return !std::isspace(c); }).base(), s.end());
+  auto is_not_space = [](unsigned char c) { return !std::isspace(c); };
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), is_not_space));
+  s.erase(std::find_if(s.rbegin(), s.rend(), is_not_space).base(), s.end());
 }
 
 bool is_safe(std::string_view value) noexcept
 {
   if (value.empty()) { return false; }
-  return std::all_of(
-    value.begin(), value.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; });
+  auto is_safe_char = [](unsigned char c) {
+    return std::isalnum(c) || c == '-' || c == '_' || c == ' ' || c == '.' || c == '@';
+  };
+  return std::ranges::all_of(value, is_safe_char);
 }
 
 bool is_valid_hex(std::string_view value, std::size_t expected_bytes) noexcept
 {
   if (value.size() != expected_bytes * 2) { return false; }
-  return std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isxdigit(c); });
+  auto is_hex_char = [](unsigned char c) { return std::isxdigit(c); };
+  return std::ranges::all_of(value, is_hex_char);
 }
 
 }// namespace phantomchat::utils
