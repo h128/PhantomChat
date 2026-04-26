@@ -18,7 +18,7 @@ template<typename APP_TYPE, bool SSL>
 void handleUploadDocument(APP_TYPE &app,
   uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
-  RoomManager &room_manager,
+  const RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<UploadTask<APP_TYPE, SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
@@ -90,6 +90,7 @@ template<typename APP_TYPE, bool SSL>
 void handleDownloadDocument(APP_TYPE &app,
   uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
+  const RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<DownloadTask<APP_TYPE, SSL>> &task_queue)
 {
   // 1. Sanitize filename (remove paths)
@@ -110,6 +111,14 @@ void handleDownloadDocument(APP_TYPE &app,
     res->writeStatus("400 Bad Request");
     phantomchat::security::writeHeaders(res, req);
     res->end("Missing room parameter");
+    return;
+  }
+
+  std::string user_uuid = std::string(req->getHeader("x-user-uuid"));
+  if (user_uuid.empty() || !room_manager.isUserMemberOfRoom({ .room_name = safe_room_name, .user_uuid = user_uuid })) {
+    res->writeStatus("403 Forbidden");
+    phantomchat::security::writeHeaders(res, req);
+    res->end("User is not a member of the specified room");
     return;
   }
 
@@ -134,21 +143,23 @@ void handleDownloadDocument(APP_TYPE &app,
 template void phantomchat::handlers::handleUploadDocument<uWS::App, false>(uWS::App &,
   uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
-  phantomchat::services::RoomManager &,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::App, false>> &);
 
 template void phantomchat::handlers::handleDownloadDocument<uWS::App, false>(uWS::App &,
   uWS::HttpResponse<false> *,
   uWS::HttpRequest *,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::App, false>> &);
 
 template void phantomchat::handlers::handleUploadDocument<uWS::SSLApp, true>(uWS::SSLApp &,
   uWS::HttpResponse<true> *,
   uWS::HttpRequest *,
-  phantomchat::services::RoomManager &,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<uWS::SSLApp, true>> &);
 
 template void phantomchat::handlers::handleDownloadDocument<uWS::SSLApp, true>(uWS::SSLApp &,
   uWS::HttpResponse<true> *,
   uWS::HttpRequest *,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<uWS::SSLApp, true>> &);
