@@ -10,13 +10,14 @@ template<typename APP_TYPE, bool SSL>
 void handleUploadDocument(APP_TYPE &app,
   uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
-  phantomchat::services::RoomManager &room_manager,
+  const phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::UploadTask<APP_TYPE, SSL>> &task_queue);
 
 template<typename APP_TYPE, bool SSL>
 void handleDownloadDocument(APP_TYPE &app,
   uWS::HttpResponse<SSL> *res,
   uWS::HttpRequest *req,
+  const phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::DownloadTask<APP_TYPE, SSL>> &task_queue);
 
 }// namespace phantomchat::handlers

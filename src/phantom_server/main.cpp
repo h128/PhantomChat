@@ -33,8 +33,8 @@ void setup_rest(uWS::TemplatedApp<SSL> &app,
   auto handle_upload_document = [&room_manager, &upload_task_queue, &app](auto *res, auto *req) {
     phantomchat::handlers::handleUploadDocument(app, res, req, room_manager, upload_task_queue);
   };
-  auto handle_download_document = [&download_task_queue, &app](auto *res, auto *req) {
-    phantomchat::handlers::handleDownloadDocument(app, res, req, download_task_queue);
+  auto handle_download_document = [&room_manager, &download_task_queue, &app](auto *res, auto *req) {
+    phantomchat::handlers::handleDownloadDocument(app, res, req, room_manager, download_task_queue);
   };
   auto handle_options = [](auto *res, auto *req) {
     auto origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
