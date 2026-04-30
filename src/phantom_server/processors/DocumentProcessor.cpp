@@ -55,10 +55,10 @@ std::jthread uploadDocumentBackgroundProcess(moodycamel::BlockingConcurrentQueue
           context_ptr->room_name,
           context_ptr->user_uuid,
           context_ptr->is_poster);
-        const auto json_event = json(event).dump();
+        auto json_event = json(event).dump();
         app.publish(event.room_name, json_event, uWS::OpCode::TEXT);
 
-        event_logger.enqueue({ .room_name = context_ptr->room_name, .json_event = json_event });
+        event_logger.enqueue({ .room_name = context_ptr->room_name, .json_event = std::move(json_event) });
       });
     }
   };
@@ -103,20 +103,22 @@ std::jthread downloadDocumentBackgroundProcess(
       if (context_ptr->aborted) continue;
 
 
-      app.getLoop()->defer(
-        [res = task.res, bytes, cors_origin = context_ptr->cors_origin, filename = context_ptr->filename]() {
-          res->writeStatus("200 OK");
-          phantomchat::security::writeHeaders(res, cors_origin);
+      app.getLoop()->defer([res = task.res,
+                             bytes = std::move(bytes),
+                             cors_origin = std::move(context_ptr->cors_origin),
+                             filename = std::move(context_ptr->filename)]() {
+        res->writeStatus("200 OK");
+        phantomchat::security::writeHeaders(res, cors_origin);
 
-          phantomchat::utils::FileProvider file_provider;
-          res->writeHeader("Content-Type", file_provider.mimeType(filename));
+        phantomchat::utils::FileProvider file_provider;
+        res->writeHeader("Content-Type", file_provider.mimeType(filename));
 
-          std::string just_filename = std::filesystem::path(filename).filename().string();
+        std::string just_filename = std::filesystem::path(filename).filename().string();
 
-          res->writeHeader("Content-Disposition", "attachment; filename=\"" + just_filename + "\"");
+        res->writeHeader("Content-Disposition", "attachment; filename=\"" + std::move(just_filename) + "\"");
 
-          phantomchat::http::sendChunked(res, std::const_pointer_cast<const std::vector<char>>(bytes));
-        });
+        phantomchat::http::sendChunked(res, std::const_pointer_cast<const std::vector<char>>(bytes));
+      });
     }
   };
 

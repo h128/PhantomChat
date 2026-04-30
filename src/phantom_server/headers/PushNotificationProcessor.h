@@ -15,7 +15,6 @@ struct PushNotificationTask
   std::vector<std::string> recipients;
   std::string title;
   std::string body;
-  std::string icon;
 };
 
 std::jthread pushNotificationBackgroundProcess(moodycamel::BlockingConcurrentQueue<PushNotificationTask> &task_queue,

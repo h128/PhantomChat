@@ -30,7 +30,7 @@ struct PHANTOM_CORE_EXPORT FcmMessage
   std::string_view fcm_token;
   std::string_view title;
   std::string_view body;
-  std::string_view icon = {};
+  std::string_view room_name = {};
 };
 
 PHANTOM_CORE_EXPORT FcmSendResult send_fcm_message(const FcmMessage &msg);
