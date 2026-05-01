@@ -64,8 +64,8 @@ void handleUploadDocument(APP_TYPE &app,
   std::filesystem::create_directories(upload_path.parent_path());
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
-  auto file_context =
-    std::make_shared<FileContext<APP_TYPE>>(app, upload_path.string(), room_name, user_id, is_poster, resolved_origin);
+  auto file_context = std::make_shared<FileContext<APP_TYPE>>(
+    app, upload_path.string(), std::move(room_name), std::move(user_id), is_poster, std::move(resolved_origin));
   auto bytes_received = std::make_shared<size_t>(0);
 
   res->onAborted([file_context]() { file_context->aborted = true; });
@@ -128,7 +128,7 @@ void handleDownloadDocument(APP_TYPE &app,
   bool is_poster = safe_file_name.find("poster") != std::string::npos;
   auto resolved_origin = phantomchat::security::resolveOrigin(req->getHeader("origin"));
   auto file_context = std::make_shared<FileContext<APP_TYPE>>(
-    app, download_path.string(), safe_room_name, "", is_poster, resolved_origin);
+    app, download_path.string(), std::move(safe_room_name), "", is_poster, std::move(resolved_origin));
 
   res->onAborted([file_context]() { file_context->aborted = true; });
 

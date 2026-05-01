@@ -22,47 +22,40 @@ namespace {
     const std::string &topic)
   {
     // Publish event to websocket
-    const auto json_event = json(event).dump();
+    auto json_event = json(event).dump();
     ws->publish(topic, json_event, uWS::OpCode::TEXT);
     // Store event in chat history
 
-    event_logger.enqueue({ .room_name = topic, .json_event = json_event });
+    event_logger.enqueue({ .room_name = topic, .json_event = std::move(json_event) });
   }
 }// anonymous namespace
 
 template<typename APP_TYPE, typename WS_TYPE>
 void handleSendMessage(APP_TYPE &,
   WS_TYPE *ws,
-  RoomManager &room_manager,
+  const RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &event_logger,
   moodycamel::BlockingConcurrentQueue<PushNotificationTask> &push_notification_queue,
   const SendMessageRequest *request)
 {
   const auto *session = get_session(ws);
   if (session->isEmpty()) { throw std::invalid_argument("User not in a room"); }
-  SendMessageResponse response;
-  response.request_uuid = request->request_uuid;
-  response.message = request->message;
-
-  ws->send(json(response).dump(), uWS::OpCode::TEXT);
+  ws->send(json(SendMessageResponse{ request->message, request->request_uuid }).dump(), uWS::OpCode::TEXT);
 
   const std::string &topic = session->room_name;
   const std::string &sender_uuid = session->user_uuid;
   dispatch_event(ws, event_logger, NewMessageReceivedEvent(sender_uuid, request->message), topic);
 
   const auto &fb = phantomchat::config::AppSettings::getInstance().firebase_settings;
-  if (fb.enabled) {
-    auto idle_members = room_manager.getIdleMembers(topic, std::chrono::seconds{ fb.min_push_interval_seconds });
-    if (!idle_members.empty()) {
-      push_notification_queue.enqueue({
-        .room_name = topic,
-        .recipients = std::move(idle_members),
-        .title = fmt::format("New message in {}", topic),
-        .body = fmt::format("{} sent a message", sender_uuid),
-        .icon = "https://fantom.chat/comment.png"//
-      });
-    }
-  }
+  if (!fb.enabled) return;
+
+  auto idle_members = room_manager.getIdleMembers(topic, std::chrono::seconds{ fb.min_push_interval_seconds });
+  if (idle_members.empty()) return;
+  push_notification_queue.enqueue({ //
+    .room_name = topic,
+    .recipients = std::move(idle_members),
+    .title = fmt::format("New message in {}", topic),
+    .body = request->message });
 }
 
 template<typename APP_TYPE, typename WS_TYPE>
@@ -96,13 +89,12 @@ void handleLeaveRoom(APP_TYPE &app,
 
   auto result = room_manager.leaveRoom({ .room_name = topic, .user_uuid = user_uuid });
 
-  LeaveRoomEvent leave_room_event(user_uuid);
 
   if (!is_client_initiated_leave) {
     // underlying WebSocket connection closed, inform other clients
-    app.publish(topic, json(leave_room_event).dump(), uWS::OpCode::TEXT);
+    app.publish(topic, json(LeaveRoomEvent{ user_uuid }).dump(), uWS::OpCode::TEXT);
   } else /* client requested to leave the room*/ {
-    dispatch_event(ws, event_logger, leave_room_event, topic);
+    dispatch_event(ws, event_logger, LeaveRoomEvent{ user_uuid }, topic);
     ws->unsubscribe(topic);
     ws->send(json(GeneralResponse{ "Left room " + topic }).dump(), uWS::OpCode::TEXT);
   }
@@ -133,19 +125,18 @@ void handleJoinOrCreateRoom(APP_TYPE &,
     .display_name = request->display_name,
     .fcm_token = request->fcm_token });
 
-  JoinOrCreateRoomResponse response;
-  response.request_uuid = request->request_uuid;
-  response.room_name = request->room_name;
-
-  response.room_key = crypto_room::encryptRoomKey({ //
-    .room_key = result.room_key,
-    .user_public_key_hex = request->public_key,
-    .server_secret_key = result.server_key_pair.secret_key });
-
-  response.server_pub_key = result.server_key_pair.public_key;
-  response.room_created = result.room_created;
-  response.members = result.members;
-  response.message = result.room_created ? "Room created successfully" : "Joined room successfully";
+  JoinOrCreateRoomResponse response{ //
+    request->room_name,
+    crypto_room::encryptRoomKey({
+      .room_key = result.room_key,
+      .user_public_key_hex = request->public_key,
+      .server_secret_key = result.server_key_pair.secret_key//
+    }),
+    result.server_key_pair.public_key,
+    result.room_created,
+    result.members,
+    request->request_uuid
+  };
 
   // Update socket data
   session->assign(request->user_uuid, request->room_name, request->public_key);
@@ -157,7 +148,6 @@ void handleJoinOrCreateRoom(APP_TYPE &,
 
   // Dispatch events
   const std::string &topic = request->room_name;
-  if (result.room_created) { dispatch_event(ws, event_logger, RoomCreatedEvent(request->room_name), topic); }
   dispatch_event(ws,
     event_logger,
     UserEnteredRoomEvent(request->room_name, request->user_uuid, request->avatar_id, request->display_name),
@@ -176,18 +166,14 @@ void handleSignalCall(APP_TYPE &,
   const std::string &topic = session->room_name;
   const std::string &sender_uuid = session->user_uuid;
 
-  GeneralResponse resp("Signal call dispatched successfully", request->request_uuid);
-  ws->send(json(resp).dump(), uWS::OpCode::TEXT);
+  ws->send(
+    json(GeneralResponse{ "Signal call dispatched successfully", request->request_uuid }).dump(), uWS::OpCode::TEXT);
 
   dispatch_event(ws, event_logger, SignalCallRelayEvent(request->action, sender_uuid, request->data), topic);
 }
 
 template<typename WS_TYPE> void sendError(WS_TYPE *ws, const std::string &message, const std::string &request_uuid)
-{
-  ErrorResponse error(message);
-  error.request_uuid = request_uuid;
-  ws->send(json(error).dump(), uWS::OpCode::TEXT);
-}
+{ ws->send(json(ErrorResponse{ message, request_uuid }).dump(), uWS::OpCode::TEXT); }
 
 template<typename APP_TYPE, typename WS_TYPE>
 void handleMessage(APP_TYPE &app,
@@ -253,7 +239,7 @@ using WsType = uWS::WebSocket<false, true, phantomchat::contracts::PerSocketData
 
 template void phantomchat::handlers::handleSendMessage<uWS::App, WsType>(uWS::App &,
   WsType *,
-  phantomchat::services::RoomManager &,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   const phantomchat::contracts::SendMessageRequest *);
@@ -293,7 +279,7 @@ using SslWsType = uWS::WebSocket<true, true, phantomchat::contracts::PerSocketDa
 
 template void phantomchat::handlers::handleSendMessage<uWS::SSLApp, SslWsType>(uWS::SSLApp &,
   SslWsType *,
-  phantomchat::services::RoomManager &,
+  const phantomchat::services::RoomManager &,
   moodycamel::BlockingConcurrentQueue<EventLogTask> &,
   moodycamel::BlockingConcurrentQueue<PushNotificationTask> &,
   const phantomchat::contracts::SendMessageRequest *);

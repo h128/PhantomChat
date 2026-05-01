@@ -28,7 +28,7 @@ std::jthread pushNotificationBackgroundProcess(moodycamel::BlockingConcurrentQue
             .fcm_token = fcm_token,
             .title = task.title,
             .body = task.body,
-            .icon = task.icon,
+            .room_name = task.room_name,
           });
 
           if (result == services::firebase::FcmSendResult::Unauthorized && !token_refreshed) {

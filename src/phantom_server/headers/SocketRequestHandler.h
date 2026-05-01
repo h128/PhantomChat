@@ -11,16 +11,13 @@
 
 namespace phantomchat::handlers {
 
-template<typename WS_TYPE>
-[[nodiscard]] phantomchat::contracts::PerSocketData *get_session(WS_TYPE *ws) noexcept
-{
-  return static_cast<phantomchat::contracts::PerSocketData *>(ws->getUserData());
-}
+template<typename WS_TYPE> [[nodiscard]] phantomchat::contracts::PerSocketData *get_session(WS_TYPE *ws) noexcept
+{ return static_cast<phantomchat::contracts::PerSocketData *>(ws->getUserData()); }
 
 template<typename APP_TYPE, typename WS_TYPE>
 void handleSendMessage(APP_TYPE &app,
   WS_TYPE *ws,
-  phantomchat::services::RoomManager &room_manager,
+  const phantomchat::services::RoomManager &room_manager,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::EventLogTask> &event_logger,
   moodycamel::BlockingConcurrentQueue<phantomchat::processors::PushNotificationTask> &push_notification_queue,
   const phantomchat::contracts::SendMessageRequest *request);

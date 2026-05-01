@@ -140,21 +140,23 @@ namespace {
   }
 
 
-  std::string
-    build_fcm_payload(std::string_view fcm_token, std::string_view title, std::string_view body, std::string_view icon)
+  std::string build_fcm_payload(const FcmMessage &msg)
   {
     nlohmann::json message;
-    message["token"] = fcm_token;
+    message["token"] = msg.fcm_token;
 
     // notification block
-    message["notification"] = { { "title", title }, { "body", body } };
+    message["notification"] = { { "title", msg.title }, { "body", msg.body } };
 
     // optional platform-specific blocks
-    if (!icon.empty()) {
-      message["android"] = { { "notification", { { "icon", icon } } } };
 
-      message["webpush"] = { { "notification", { { "icon", icon } } } };
-    }
+    constexpr std::string_view icon = "https://fantom.chat/comment.png"sv;
+    message["android"] = { { "notification", { { "icon", icon } } } };
+
+    message["webpush"] = { { "notification", { { "icon", icon } } } };
+
+
+    if (!msg.room_name.empty()) { message["data"] = { { "room_name", msg.room_name } }; }
 
     nlohmann::json root;
     root["message"] = std::move(message);
@@ -171,7 +173,7 @@ FcmSendResult send_fcm_message(const FcmMessage &msg)
   if (msg.access_token.empty() || msg.project_id.empty() || msg.fcm_token.empty()) return FcmSendResult::Failed;
 
   const std::string url = fmt::format("https://fcm.googleapis.com/v1/projects/{}/messages:send", msg.project_id);
-  const std::string payload = build_fcm_payload(msg.fcm_token, msg.title, msg.body, msg.icon);
+  const std::string payload = build_fcm_payload(msg);
   const auto response = http_post_json(url, msg.access_token, payload);
 
   if (response.status == 401) return FcmSendResult::Unauthorized;

@@ -45,9 +45,11 @@ bool RoomManager::isUserMemberOfRoom(const RoomArgs &args) const
 {
   std::shared_lock<std::shared_mutex> lock(rooms_mutex);
   auto it = rooms.find(args.room_name);
+
   if (it == rooms.end()) { return false; }
+
   const auto &members = it->second.members;
-  return std::ranges::any_of(members, [&](const auto &m) { return m.user_uuid == args.user_uuid; });
+  return std::ranges::contains(members, args.user_uuid, &contracts::Member::user_uuid);
 }
 
 RoomManager::LeaveRoomResult RoomManager::leaveRoom(const RoomArgs &args)
