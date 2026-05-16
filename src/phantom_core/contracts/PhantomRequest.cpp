@@ -67,6 +67,13 @@ void SignalCallRequest::validate()
       throw std::invalid_argument("CANDIDATE action requires an IceCandidate");
     }
   }
+
+  // SCREEN_SHARE_STATE requires a ScreenShareState payload
+  if (action == SignalCallAction::SCREEN_SHARE_STATE) {
+    if (!std::holds_alternative<ScreenShareState>(data)) {
+      throw std::invalid_argument("SCREEN_SHARE_STATE action requires a ScreenShareState payload");
+    }
+  }
 }
 
 PhantomRequestPtr from_json(std::string_view jsonString)
