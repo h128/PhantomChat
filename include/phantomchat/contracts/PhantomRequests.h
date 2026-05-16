@@ -17,7 +17,8 @@ enum class SignalCallAction {
   ANSWER = 2,// WebRTC SDP Answer (The technical 'Accept')
   REJECT = 3,// User declined the call
   CANDIDATE = 4,// ICE Network path
-  HANGUP = 5// End the call
+  HANGUP = 5,// End the call
+  SCREEN_SHARE_STATE = 6// Sender's screen-share status (started/stopped)
 };
 
 // Base request class
@@ -103,7 +104,13 @@ struct IceCandidate
   std::optional<std::string> usernameFragment;
 };
 
-using SignalingData = std::variant<std::monostate, SessionDescription, IceCandidate>;
+// Carries screen-share start/stop notification for the sending peer
+struct ScreenShareState
+{
+  bool enabled = false;
+};
+
+using SignalingData = std::variant<std::monostate, SessionDescription, IceCandidate, ScreenShareState>;
 struct SignalCallRequest final : public PhantomRequestBase
 {
   SignalCallRequest() { command = Command::SignalCall; }

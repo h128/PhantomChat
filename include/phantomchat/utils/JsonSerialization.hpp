@@ -27,6 +27,9 @@ void from_json(const nlohmann::json &j, SessionDescription &sd);
 void to_json(nlohmann::json &j, const IceCandidate &ic);
 void from_json(const nlohmann::json &j, IceCandidate &ic);
 
+void to_json(nlohmann::json &j, const ScreenShareState &ss);
+void from_json(const nlohmann::json &j, ScreenShareState &ss);
+
 void from_json(const nlohmann::json &j, SignalCallRequest &request);
 
 void to_json(nlohmann::json &j, const JoinOrCreateRoomResponse &response);

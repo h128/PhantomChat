@@ -128,6 +128,11 @@ void from_json(const nlohmann::json &j, IceCandidate &ic)
 }
 
 
+void to_json(nlohmann::json &j, const ScreenShareState &ss) { j = nlohmann::json{ { "enabled", ss.enabled } }; }
+
+void from_json(const nlohmann::json &j, ScreenShareState &ss) { ss.enabled = j.at("enabled").get<bool>(); }
+
+
 void from_json(const nlohmann::json &j, SignalCallRequest &request)
 {
   request.request_uuid = j.at("request_uuid").get<std::string>();
@@ -142,6 +147,9 @@ void from_json(const nlohmann::json &j, SignalCallRequest &request)
       break;
     case SignalCallAction::CANDIDATE:
       request.data = j["data"].get<IceCandidate>();
+      break;
+    case SignalCallAction::SCREEN_SHARE_STATE:
+      request.data = j["data"].get<ScreenShareState>();
       break;
     default:
       request.data = std::monostate{};
@@ -204,7 +212,8 @@ void to_json(nlohmann::json &j, const SignalCallRelayEvent &event)
       std::visit(
         [](auto &&arg) -> nlohmann::json {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, contracts::SessionDescription> || std::is_same_v<T, contracts::IceCandidate>)
+          if constexpr (std::is_same_v<T, contracts::SessionDescription> || std::is_same_v<T, contracts::IceCandidate>
+                       || std::is_same_v<T, contracts::ScreenShareState>)
             return arg;
           return nullptr;
         },
